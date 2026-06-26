@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "JLaw-CiteGraph: An open citation graph of Japanese statutory law"
+message: "If you use this dataset or code, please cite it as below."
+type: dataset
+authors:
+  - family-names: "Park"
+    given-names: "Yabooung"
+    alias: "yabooung"
+    email: "horusr8@gmail.com"
+abstract: >-
+  An open, reproducible citation graph of Japanese national statutory law, built
+  deterministically from official e-Gov law XML: 8,980 laws and 1,212,708 resolved
+  article-level external citation edges (722,426 cross-law; 55,651 distinct law-to-law
+  pairs), with a deterministic rule-based resolver. Snapshot: e-Gov 2026-06-23.
+keywords:
+  - Japanese law
+  - legal NLP
+  - citation graph
+  - knowledge graph
+  - statute
+  - e-Gov
+license: Apache-2.0
+license-url: "https://github.com/yabooung/jp-law-citation-graph/blob/main/LICENSE"
+version: "1.0.0"
+date-released: "2026-06-23"
+url: "https://github.com/yabooung/jp-law-citation-graph"

@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+snapshot/
+.DS_Store
+_prev_v1/
