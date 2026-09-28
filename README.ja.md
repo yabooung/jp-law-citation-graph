@@ -2,142 +2,96 @@
 
 [English](README.md) · **日本語** · [한국어](README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.0.0-informative)
 
-**日本の法令間の引用関係を決定論的に解決した、オープンな引用グラフ。**
+**日本の法令の引用関係を決定論的に解決した、オープンな引用グラフと検索インデックス。**
 
-公式 [e-Gov](https://laws.e-gov.go.jp/) の法令XMLから決定論的に抽出し、すべてのエッジを特定の
-法令・条に解決した再現可能な引用グラフです。精度は層化サンプルで検証しています（暫定 — 「制約」参照）。
+公式 [e-Gov](https://laws.e-gov.go.jp/) の法令XMLから、現行の全法令を条・項・号まで解析し、本文中の
+引用をそれぞれ参照先の規定に解決しています。データファイル、単一ファイルのエクスプローラ、埋め込み不要の
+検索CLI `jlawcite`、LLM向けのMCPサーバーを同梱しています。
 
 [![JLaw-CiteGraph インタラクティブ・エクスプローラ](assets/explorer-screenshot.png)](explorer.html)
 
-<sub>単一ファイルの **[`explorer.html`](explorer.html)** — 法令を選ぶと、その引用先（緑）と被引用元
-（黄）が表示されます。表示中: 地方自治法（被引用が最多、1,220法令）。</sub>
+<sub>[`explorer.html`](explorer.html) — 法令を選ぶと、その引用先（緑）と被引用元（黄）が表示されます。</sub>
 
-> **同梱物:** グラフ（CSV/JSONL）· 単一ファイルのインタラクティブ **explorer**（`explorer.html`）·
-> 再利用可能な決定論的Pythonリゾルバ（`jlawcite`）· そしてLLM（Claude等）がグラフを直接クエリできる
-> **🔌 MCPサーバー** — [`mcp/`](mcp/README.md)。
+## 概要（v2.0、e-Gov 2026-09-27 スナップショット）
 
 | | |
 |---|---|
-| **法令（ノード）** | 8,980法令（e-Gov XML 10,229ファイル、2026-06-23スナップショット） |
-| **解決済み外部エッジ** | **1,212,708**（条レベル）— うち **722,426が法令間**（法令A→法令B）+ 490,282が自己/版参照（附則内の新法/旧法）· **55,651の異なる法令間ペア** |
-| **法令内エッジ** | 約3.6M抽出（本リリースは**法令間**グラフを同梱） |
-| **エッジ精度** | *暫定値。* 経路層化サンプル400件で確認（現時点で確認された誤りなし）— ただし**ブラインド検証は未実施**のため、検証済みの精度ではなく目安としてお考えください。（[検証に協力 →](#貢献) · [手法](docs/METHODOLOGY.md)） |
-| **外部解決率（recall）** | **生 68%** · 範囲内の実質引用で約85–90%*（小標本の推定）* |
-| **手法** | 100%決定論的（正規表現+辞書+ルールベース解決）— *LLMなし・乱数なし・完全に再現可能かつ監査可能* |
+| **法令** | 8,998（2026-09-29 時点で施行中の版）＋ **施行予定の改正 1,649件**（施行日・改正法令） |
+| **グラフ** | 189万ノード（条・項・号・附則・別表）· 引用エッジ 142万 · 委任（政令で定める）67,666 · 別表/様式参照 37,377 |
+| **法令間ネットワーク** | 法令ペア 70,577 · 条レベルの法令間リンク 453,390 |
+| **引用解決率** | 同一法令内 92.9% · 他法令 82.2% · 前条/同項などの指示語 92.2% |
+| **精度** | エッジの86%を占める規則の手作業サンプルで約98%（暫定 — 下記参照） |
+| **検索** | `jlawcite get 民法第七百九条` · BM25検索 · 実際の税務質問1,170件で引用グラフを使うと Recall@10 が 0.24 → 0.46 |
+| **手法** | 100%決定論的（規則＋辞書＋文書内文脈）。LLMなし。e-Gov一括ダウンロードから再現可能 |
 
-> ⚠️ **最初にお読みください:** 本グラフは高精度の**下限（lower bound）**であり、*完全な*引用一覧ではありません。生のrecallは約68% — **エッジが無いことは「引用が無い」ことを意味しません。** 網羅的・権威的な情報源としては使わないでください（[正直な制約](#正直な制約)参照）。
+## v2 の変更点
 
-> なぜ重要か: e-Govは法令の*本文*は提供しますが、解決済みの*引用ネットワーク*は提供しません。それを
-> 作るには略称（`金商法`→`金融商品取引法`）、法令内照応（`旧法`/`新法`/`同法`）、over-grab、改名法令
-> （`旧法令名`）を解決する必要があります。本リポジトリはそれを決定論的に行い、グラフを同梱します。
+| | v1.0（2026-06） | **v2.0（2026-09）** |
+|---|---|---|
+| 単位 | 法令→法令（条は文字列） | 条・項・号ノード（附則・別表を含む） |
+| エッジ | 法令間引用 | ＋同一法令内引用、前条/同項/前号、委任、別表参照 |
+| 条レベルの法令間リンク（重複除去） | 173,844 | **453,390** |
+| 法令ペア | 55,651 | **70,577** |
+| 版 | 法令ごとの最新ファイル | 基準日に施行中の版＋施行予定の改正 |
+| 検索 | – | `jlawcite` CLI（条文参照・BM25・グラフ探索）＋検索ベンチマーク |
+| 精度 | 誤り0 / 400（LLM提案ラベル） | 規則別サンプルと信頼区間。誤りの型を5つ発見・修正 |
 
----
+v1 は同じ引用の*出現ごと*に1行を書いていたため、121万行のうち異なるリンクは173,844でした。
+v2 は（出典, 参照先）の組を1回だけ数えます。詳細は [CHANGELOG.md](CHANGELOG.md)。
 
-> **リリース = 日付付きスナップショット。** `v1` は **e-Gov 2026-06-23** スナップショット — 固定され、
-> 引用可能で、再現可能な一時点（研究に適した形）。*最新*のグラフが必要なら `src/fetch_egov.py` で再生成
-> でき、このリポジトリの更新に依存しません。
-
-## 想定ユーザー
-| あなたが… | 使い道 |
-|---|---|
-| **法律NLP研究者** | 条文検索/RAGを引用近傍で拡張、または `jlawcite` で自分のコーパスの引用を解決（例: COLIEE条文タスク） |
-| **リーガルテック開発者** | 「Xを参照する法令は?」に回答 — 例: 個人情報保護法の改正で**110**の依存法令を洗い出し（検証済みの下限） |
-| **比較法/ネットワーク研究者** | 法構造の研究: ハブ（地方自治法は1,220法令から被引用）、中心性、依存クラスタ（NetworkX/Neo4jへ） |
-| **LLMリーガルアシスタント開発者** | 引用を決定論的に接地 — `会社法第737条`→特定の法令・条に解決、幻覚なし |
-| **興味本位** | `explorer.html` を開き、日本の法令のつながりをクリックで探索 |
-
-## 中身（`/data`）
-- **`laws.csv`** — ノード: `law_id, name, type, url`
-- **`cites_law_to_law.csv`** — 集約エッジ: `src_law_id, src_law, tgt_law_id, tgt_law, n_citations`（ネットワーク分析向け）
-- **`cites_edges.jsonl.gz`** — 全エッジ: `src_law/src_article → tgt_law/tgt_article`、`via`（解決経路）+ `confidence` 付き
-
-各エッジは `via` ∈ {`canonical`, `promulgation`, `alias`, `old_name`, `prefix_stripped`, `suffix`,
-`local_def`, `local_def_tail`} と `confidence` を持つため、高信頼サブセットに絞り込めます。
-
-## ひと目（グラフから計算）
-**被引用が多い法令（ハブ）** — *他の*何法令から引用されているか:
-| 法令 | 被引用 |
-|---|---|
-| 地方自治法 | 1,220 |
-| 会社法 | 629 |
-| 児童福祉法 | 500 |
-| 行政手続法 | 462 |
-| 民法 | 411 |
-
-**影響分析** — 「Xを引用するのは?」→ 検証済みの下限: `個人情報保護法` ← **110法令**。
-
-## 使う
-```python
-import pandas as pd
-laws  = pd.read_csv("data/laws.csv")
-edges = pd.read_csv("data/cites_law_to_law.csv")
-
-# 被引用の多いハブ法令
-hubs = edges.groupby(["tgt_law_id","tgt_law"])["src_law_id"].nunique() \
-            .sort_values(ascending=False).head(20)
-
-# 影響集合: ある法令を引用するのは?
-target = laws[laws.name=="個人情報の保護に関する法律"].law_id.iloc[0]
-print(edges[edges.tgt_law_id==target].src_law.tolist())
-```
-NetworkX / Neo4j に読み込んで中心性・コミュニティ検出、または **RAG基盤** として
-（条文を検索→引用先/被引用元の条に展開）。
-
-### LLMから使う — MCPサーバー（`mcp/`）
-グラフ + 決定論的リゾルバを Model Context Protocol 経由で Claude/LLM に公開:
-`resolve_citation`, `what_cites`, `what_law_cites`, `citation_path`, `get_law`。[`mcp/README.md`](mcp/README.md) 参照。
-
-### 評価ハーネス（`eval/`）
-精度/recall ラベリングサンプル + `compute_kappa.py` / `aggregate_precision.py`、および
-[`eval/EVAL_PROTOCOL.md`](eval/EVAL_PROTOCOL.md) — *暫定*値（[docs/METHODOLOGY.md](docs/METHODOLOGY.md) 参照）を
-ブラインド複数アノテータで検証済み測定値へ引き上げる方法。
-
-## ゼロから再現
-純Python標準ライブラリ — サードパーティ依存なし（Python 3.10+）。
+## クイックスタート
 ```bash
-cd src
-python fetch_egov.py --out snapshot/                 # e-Gov法令スナップショットをダウンロード
-python build_graph.py --corpus snapshot/ --out ../data/   # parse → extract → resolve → export
+git clone https://github.com/yabooung/jp-law-citation-graph && cd jp-law-citation-graph
+pip install -e .                                     # Python 3.11+
+
+jlawcite fetch                                       # e-Gov 一括XML（約320MB）
+jlawcite build --input data/raw/law_xml \
+    --csv data/raw/law_xml/all_law_list.csv --output data/parsed      # 約5分・決定論的
+jlawcite validate --data data/parsed                 # 整合性チェック11項目
+jlawcite index                                       # 検索インデックス（約1.5分、2.6GB）
+
+jlawcite get 民法第七百九条                           # 労働基準法20条1項、激甚法第三条なども可
+jlawcite search 解雇 予告                             # BM25。質問文は --nl
+jlawcite refs 労働基準法第二十条                       # 引用先・被引用元
+jlawcite pending --until 20261231                    # 施行予定の改正
 ```
-決定論的: 同じスナップショット + 同じコード → バイト単位で同一のグラフ。（既存のスナップショット
-ディレクトリから再現するなら `build_graph.py` のみで十分。`fetch_egov.py` はコーパス更新用です。）
 
-### コード（`src/jlawcite/`）— 単独でも再利用できる決定論的リゾルバ
-```python
-from jlawcite import citation, resolver, parser
-refs, _ = citation.extract_external("会社法第七百三十七条第二項の…")   # -> ExtRef(law='会社法', art=737, …)
-```
-`parser`（e-Gov XML → 条/項/号）、`citation`（ルールベース抽出 + 法令内定義照応）、
-`resolver`（`LawNameIndex`: 法令番号/正式名/旧法令名/略称/over-grabトリム解決）。
+## データ（`/data`）
+| ファイル | 内容 |
+|---|---|
+| `laws.csv` | v1 の列＋ `enforcement_date, next_enforcement_date, pending_versions` |
+| `cites_law_to_law.csv` | 法令→法令の集計（v1 の列） |
+| `cites_edges.jsonl.gz` | 法令名で示された引用すべて。v1 の項目＋ `src_node`, `tgt_node`, `fallback_level` |
+| `cites_all_edges.jsonl.gz` | グラフの全エッジ（同一法令内・前条/同項・委任・別表参照・改正） |
+| `pending_versions.csv` | 施行予定の改正（施行日・施行日備考・改正法令・e-Gov URL） |
 
-## 正直な制約
-- **recallは完全ではない（生 約68%）。** 取りこぼしの大半は (a) 抽出アーティファクト/共参照、
-  (b) **範囲外ターゲット** — 廃止/改名法令、条約、外国法（現行のみのコーパスに*ノードがない*）。
-  検証済みエッジは正しく、グラフは高精度の**下限**であり、網羅的ではありません。
-- **現行版のみ。** エッジの約22%は版依存の参照（`旧法`/`改正前`）で現行版に縮約されます。版レイヤなしでは
-  改正伝播分析には不向きです。
-- **国の法令のみ** — 条例や判例は含みません。
-- 精度はサンプルラベリング（LLM提案 + 人手スポットチェック）で検証。より大きなブラインド複数
-  アノテータラウンドは今後の課題です。
+全ノード（189万、本文付き）は GitHub Release に添付するか、クイックスタートで再生成できます。
 
-## 貢献
-Issue・PR歓迎 — [CONTRIBUTING.md](CONTRIBUTING.md) 参照。上記の制約がそのままロードマップです。協力歓迎:
-- **ブラインド注釈ラウンド** → 精度/recallを*暫定*から*検証済み*に（`eval/precision_sample.csv` / `eval/recall_gold_sample.csv` をラベリング。[eval/EVAL_PROTOCOL.md](eval/EVAL_PROTOCOL.md)）。
-- **版対応レイヤ** → 約22%の版依存エッジを特定の版に解決（改正伝播分析が可能に）。
-- **カバレッジ** → 条例/判例、標準略称辞書の拡張。
-- **誤ったエッジ・取りこぼした引用を見つけたら?** *データIssue*を開いてください（テンプレートは `.github/`）。
+## MCPサーバー（`mcp/`）
+v1 の5ツールに加え、v2 では `get_provision`（引用文字列→条文）、`search_statutes`、
+`pending_amendments` を追加しました。[`mcp/README.md`](mcp/README.md)
 
-## ライセンス
-コード: Apache-2.0。データ/グラフ: CC-BY-4.0（出典: e-Gov 法令データ、公開）。`LICENSE`, `DATA_CARD.md` 参照。
+## 検索ベンチマーク
+国税庁「質疑応答事例」1,170件（回答が根拠条文を示すもの）について、質問文をクエリとし、条単位で評価します。
 
-## 引用
-```
-@misc{jlaw_citegraph_2026,
-  title  = {JLaw-CiteGraph: An open citation graph of Japanese statutory law},
-  year   = {2026},
-  note   = {e-Gov 2026-06-23 snapshot},
-  url    = {https://github.com/yabooung/jp-law-citation-graph}
-}
-```
+| method | R@1 | R@5 | R@10 | R@20 | R@50 | MRR@50 | s/query |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| BM25 (character-trigram OR) | 0.086 | 0.192 | 0.244 | 0.326 | 0.437 | 0.140 | 0.11 |
+| BM25 + 1-hop citation graph | **0.256** | **0.403** | **0.459** | **0.500** | **0.550** | **0.325** | 0.11 |
+
+<sub>1,170 queries · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
+
+1ホップ展開では、上位の検索結果が引用する条文にスコアを分配します。施行令の項がヒットすると、
+それが引用する本法の条も上がってきます。いずれも埋め込みを使わない基準値です。
+
+## 品質と制約
+- 本文のない法令は0件、整合性チェック11項目はすべて通過し、同じ入力からは同じ出力になります。
+- 解決率の分母からは、コーパス外を参照する引用（改正前の法令、改正法、改正法附則内の引用）を除いています。件数は `jp_cites_stats.json` に別途記録しています。
+- **精度は暫定値です。** 開発中に無作為抽出したエッジ180件（規則ごとに10〜20件）を原文と照合し、見つかった誤りの型5つを修正しました。サンプルが小さく、ブラインド評価でもないため目安としてください。改正法附則内の引用は約40%しか正しくないため、confidence 0.4 を付けています。詳細は [docs/METHODOLOGY.md](docs/METHODOLOGY.md)。
+- 対象は現行の国の法令のみです。判例・通達・条例・廃止法令や改正法の本文は含みません。イ・ロ・ハの細目は号に含めています。
+
+## ライセンス・引用
+コード: Apache-2.0。データ: CC BY 4.0（出典：e-Gov法令データ。`eval/v2/nta_gold.jsonl` は国税庁ホームページを加工）。
+法的判断には e-Gov・官報の原文を確認してください。引用は [README.md](README.md#citation) の BibTeX をお使いください。

@@ -2,144 +2,172 @@
 
 **English** · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.0.0-informative)
 
-**The first open, deterministically-resolved citation graph of Japanese statutory law.**
+**An open, deterministic citation graph and search index for Japanese statutory law.**
 
-A reproducible graph of how Japan's national laws cite each other — extracted deterministically
-from official [e-Gov](https://laws.e-gov.go.jp/) law XML, with every edge resolved to a specific
-law/article. Precision is checked on stratified samples (preliminary — see limitations).
+Every Japanese law in force is parsed from official [e-Gov](https://laws.e-gov.go.jp/) XML down
+to article (条), paragraph (項) and item (号). Every citation in the text is resolved to the provision
+it points at. The result ships as data files, a single-file explorer, a `jlawcite` command-line tool
+that looks up and searches provisions without embeddings, and an MCP server for LLMs.
 
 [![JLaw-CiteGraph interactive explorer](assets/explorer-screenshot.png)](explorer.html)
 
-<sub>The single-file **[`explorer.html`](explorer.html)** — pick a law, see what it cites (green) and what
-cites it (yellow). Shown: 地方自治法 (Local Autonomy Act), the most-cited law (1,220 citing laws).</sub>
+<sub>[`explorer.html`](explorer.html): pick a law and see what it cites (green) and what cites it (yellow).</sub>
 
-> **Ships with:** the graph (CSV/JSONL) · a single-file interactive **explorer** (`explorer.html`) ·
-> a reusable deterministic Python resolver (`jlawcite`) · and an **🔌 MCP server** so LLMs (Claude, …)
-> can query the citation graph directly — [`mcp/`](mcp/README.md).
+## At a glance (v2.0, e-Gov snapshot 2026-09-27)
 
 | | |
 |---|---|
-| **Laws (nodes)** | 8,980 distinct laws (from 10,229 e-Gov XML files, 2026-06-23 snapshot) |
-| **Resolved external edges** | **1,212,708** article-level — **722,426 cross-law** (law A→law B) + 490,282 self/version refs (新法/旧法 in a law's own 附則) · **55,651 distinct law→law pairs** |
-| **Internal (intra-law) edges** | ~3.6M extracted (this release ships the **external** law→law graph) |
-| **Edge precision** | *Preliminary.* Checked on a 400-edge path-stratified sample (no confirmed errors so far) — **but not yet blind-validated**, so treat it as indicative, not a verified precision figure. ([help validate →](#contributing) · [method](docs/METHODOLOGY.md)) |
-| **External resolution (recall)** | **68% raw** · ~85–90% on in-scope substantive citations *(small-sample estimate)* |
-| **Method** | 100% deterministic (regex + dictionary + rule-based resolution) — *no LLM, no randomness, fully reproducible & auditable* |
+| **Laws** | 8,998, each at the version in force on 2026-09-29, plus **1,649 upcoming amendments** (施行日 + amending law) |
+| **Graph** | 1.89M nodes (条・項・号・附則・別表) · 1.42M citation edges · 67,666 delegation edges (政令で定める) · 37,377 別表/様式 references |
+| **Law → law network** | 70,577 distinct pairs · 453,390 distinct article-level links between laws |
+| **Citation resolution** | same-law 92.9% · cross-law 82.2% · relative refs (前条/同項/…) 92.2% |
+| **Precision** | ≈98% on hand-checked samples of the rules covering 86% of edges (preliminary, see below) |
+| **Search** | `jlawcite get 民法第七百九条` · BM25 search · on 1,170 real tax questions the citation graph lifts Recall@10 from 0.24 to 0.46 |
+| **Method** | 100% deterministic (rules + dictionaries + document context), no LLM, reproducible from the public e-Gov bulk download |
 
-> ⚠️ **Read this first:** the graph is a high-precision **lower bound**, *not* a complete citation index. Raw recall is ~68% — **a missing edge does not mean "no citation."** Please don't rely on it as an exhaustive or authoritative source (see [Honest limitations](#honest-limitations)).
+## What's new in v2
 
-> Why this matters: e-Gov gives you the law *text*, but not a resolved *citation network*. Building
-> one means solving abbreviations (`金商法`→`金融商品取引法`), in-law anaphora (`旧法`/`新法`/`同法`),
-> over-grab, and renamed laws (`旧法令名`). This repo does that, deterministically, and ships the graph.
+| | v1.0 (2026-06) | **v2.0 (2026-09)** |
+|---|---|---|
+| Unit | law → law (article strings) | article / paragraph / item nodes, incl. 附則 and attachments |
+| Edges | cross-law citations | + same-law citations, 前条/同項/前号, delegation, 別表 references |
+| Distinct article-level cross-law links | 173,844 | **453,390** |
+| Law → law pairs | 55,651 | **70,577** |
+| Versions | latest file per law | version in force on a date + upcoming amendments |
+| Search | – | `jlawcite` CLI (lookup, BM25, graph walk) + retrieval benchmark |
+| Precision | 0 errors / 400 (LLM-proposed labels) | per-rule samples with confidence intervals; 5 error classes found and fixed |
 
----
-
-> **Release = a dated snapshot.** `v1` is the **e-Gov 2026-06-23** snapshot — a fixed, citable,
-> reproducible point in time (the right shape for research). To get a *current* graph, regenerate
-> with `src/fetch_egov.py`; you don't depend on this repo being kept up to date.
+v1 wrote one line per citation *mention*, so its 1.21M lines hold 173,844 distinct links; v2 counts
+each (source, target) link once. Full list in [CHANGELOG.md](CHANGELOG.md).
 
 ## Who is this for?
 | You are… | You use it to… |
 |---|---|
-| a **legal-NLP researcher** | augment statute retrieval / RAG with citation neighbors; or use `jlawcite` to resolve citations in your own corpus (e.g. COLIEE statute task) |
-| a **legal-tech developer** | answer "what laws reference X?" — e.g. amending 個人情報保護法 surfaces **110** dependent laws to review (a verified lower bound) |
-| a **comp-law / network researcher** | study legal structure: hubs (地方自治法 is cited by 1,220 laws), centrality, dependency clusters (load into NetworkX/Neo4j) |
-| building an **LLM legal assistant** | ground citations deterministically — resolve `会社法第737条` → a specific law/article, no hallucination |
-| **curious** | open `explorer.html` and click through how Japan's laws connect |
+| a **legal-NLP researcher** | add citation neighbours to statute retrieval / RAG (the benchmark below shows the gain), or reuse the deterministic resolver on your own corpus |
+| a **legal-tech developer** | answer "what cites X?" (amending 個人情報保護法 touches **111** laws) and "what changes when?" (`pending_versions.csv`) |
+| a **network / comparative-law researcher** | study hubs (地方自治法 is cited by 1,250 laws), delegation chains and dependency clusters |
+| building an **LLM legal assistant** | ground citations deterministically via the MCP server: `会社法第737条` → the exact article text |
+
+## Quick start
+```bash
+git clone https://github.com/yabooung/jp-law-citation-graph && cd jp-law-citation-graph
+pip install -e .                                     # Python 3.11+
+
+jlawcite fetch                                       # e-Gov bulk XML (~320 MB) → data/raw/law_xml
+jlawcite build --input data/raw/law_xml \
+    --csv data/raw/law_xml/all_law_list.csv --output data/parsed      # ~5 min, deterministic
+jlawcite validate --data data/parsed                 # 11 integrity checks
+jlawcite index                                       # search index (~1.5 min, 2.6 GB)
+
+jlawcite get 民法第七百九条                           # also: 労働基準法20条1項, 激甚法第三条, node ids
+jlawcite search 解雇 予告                             # BM25; --nl for a question sentence
+jlawcite refs 労働基準法第二十条                       # what it cites / what cites it
+jlawcite pending --until 20261231                    # amendments coming into force
+```
+
+```text
+$ jlawcite get 民法第七百九条
+民法  [129AC0000000089, act, 明治二十九年法律第八十九号]  現行 2026-06-24 施行中, 次回改正 2027-06-23
+[129AC0000000089_a709] Article
+
+第七百九条
+故意又は過失によって他人の権利又は法律上保護される利益を侵害した者は、これによって生じた損害を賠償する責任を負う。
+
+改正予定:
+  2027-06-23  民法 ← 民法等の一部を改正する法律 令和八年法律第四十五号 (公布の日から起算して一年を超えない範囲内において政令で定める日)
+  …
+```
+
+Every command takes `--json`. The same functions are available in Python (`jlawcite.search.SearchDB`).
 
 ## What's inside (`/data`)
-- **`laws.csv`** — nodes: `law_id, name, type, url`
-- **`cites_law_to_law.csv`** — aggregated edges: `src_law_id, src_law, tgt_law_id, tgt_law, n_citations` (great for network analysis)
-- **`cites_edges.jsonl.gz`** — full edges: `src_law/src_article → tgt_law/tgt_article`, with `via` (how it resolved) + `confidence`
-
-Every edge carries a `via` ∈ {`canonical`, `promulgation`, `alias`, `old_name`, `prefix_stripped`,
-`suffix`, `local_def`, `local_def_tail`} and a `confidence`, so you can filter to a high-confidence subset.
-
-## Quick look (computed from the graph)
-**Most-cited laws (hubs)** — how many *other* laws cite them:
-| Law | Cited by |
+| File | Content |
 |---|---|
-| 地方自治法 (Local Autonomy Act) | 1,220 |
-| 会社法 (Companies Act) | 629 |
-| 児童福祉法 (Child Welfare Act) | 500 |
-| 行政手続法 (Admin. Procedure Act) | 462 |
-| 民法 (Civil Code) | 411 |
+| `laws.csv` | `law_id, name, type, url` (v1) + `enforcement_date, next_enforcement_date, pending_versions` |
+| `cites_law_to_law.csv` | aggregated `src_law → tgt_law` counts (v1 columns) |
+| `cites_edges.jsonl.gz` | every resolved citation of a named law: v1 fields (`src_article`, `tgt_article`, `via`, `confidence`) + `src_node`, `tgt_node`, `fallback_level` |
+| `cites_all_edges.jsonl.gz` | **every** edge of the graph: CITES (incl. same-law and 前条/同項), DELEGATES_TO, REFERS_TO_ATTACHMENT, AMENDS, each with `extracted_from` |
+| `pending_versions.csv` | upcoming amendments: 施行日, 施行日備考, amending law, e-Gov URL |
+| `release_stats.json` | the counts quoted here |
 
-**Impact analysis** — "what cites X?" → a verified lower bound:
-`個人情報保護法` (Personal Information Protection Act) ← **110 laws**.
+The full node file (1.89M nodes, article and paragraph text included) is attached to the GitHub
+release, or you can rebuild it with the Quick start commands.
 
-## Use it
 ```python
 import pandas as pd
-laws  = pd.read_csv("data/laws.csv")
 edges = pd.read_csv("data/cites_law_to_law.csv")
-
-# top hub laws
-hubs = edges.groupby(["tgt_law_id","tgt_law"])["src_law_id"].nunique() \
-            .sort_values(ascending=False).head(20)
-
-# impact set: what cites a given law?
-target = laws[laws.name=="個人情報の保護に関する法律"].law_id.iloc[0]
-print(edges[edges.tgt_law_id==target].src_law.tolist())
+hubs = edges.groupby("tgt_law")["src_law_id"].nunique().sort_values(ascending=False).head(10)
 ```
-Load into NetworkX / Neo4j for centrality, community detection, or as a **RAG substrate**
-(retrieve a statute → expand to its cited/citing articles).
 
-### Use it from an LLM — MCP server (`mcp/`)
-Expose the graph + deterministic resolver to Claude/LLMs over the Model Context Protocol:
-`resolve_citation`, `what_cites`, `what_law_cites`, `citation_path`, `get_law`. See [`mcp/README.md`](mcp/README.md).
+## Use it from an LLM: MCP server (`mcp/`)
+`resolve_citation`, `what_cites`, `what_law_cites`, `citation_path`, `get_law`, and in v2
+`get_provision` (citation → text), `search_statutes` and `pending_amendments`.
+See [`mcp/README.md`](mcp/README.md).
 
-### Evaluation harness (`eval/`)
-Precision/recall labeling samples + `compute_kappa.py` / `aggregate_precision.py`, and
-[`eval/EVAL_PROTOCOL.md`](eval/EVAL_PROTOCOL.md) — how the *preliminary* figures (see [docs/METHODOLOGY.md](docs/METHODOLOGY.md))
-are upgraded to validated measurements via blind multi-annotator labeling.
+## Retrieval benchmark
+Each of 1,170 National Tax Agency Q&A cases (質疑応答事例) is a real tax question whose answer cites
+specific articles. The question is the query, and hits are counted at the article level
+(`jlawcite eval`).
 
-## Reproduce from scratch
-Pure Python standard library — no third-party dependencies (Python 3.10+).
+| method | R@1 | R@5 | R@10 | R@20 | R@50 | MRR@50 | s/query |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| BM25 (character-trigram OR) | 0.086 | 0.192 | 0.244 | 0.326 | 0.437 | 0.140 | 0.11 |
+| BM25 + 1-hop citation graph | **0.256** | **0.403** | **0.459** | **0.500** | **0.550** | **0.325** | 0.11 |
+
+<sub>1,170 queries · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
+
+The one-hop expansion adds the articles that the top hits cite. A retrieved 施行令 paragraph pulls
+up the parent-act article it implements. Both rows use no embeddings; they are a baseline for dense
+or hybrid retrievers.
+
+## Quality, honestly
+- **Coverage.** No law is left without body text, the 11 integrity checks pass (no dangling edges),
+  and the same input produces the same output.
+- **Resolution rates** leave out citations whose target is not in a current-law corpus: pre-amendment
+  text (旧法), amending acts (改正法), and citations inside amending-law 附則 blocks. These are counted
+  separately in `jp_cites_stats.json`.
+- **Precision is preliminary.** 180 random edges (10–20 per resolution rule) were checked by hand
+  against their source text during development. Five error classes turned up and were fixed. The rules covering 86% of edges now
+  measure ≈98%. Samples are small (10/10 still has a 72% lower bound) and were not blind, so treat it
+  as indicative. Citations inside amending-law 附則 are about 40% right and are flagged with
+  confidence 0.4. Citations of pre-amendment text (「旧○○法第N条」) point at the current version and
+  carry `version: "pre_amendment"`. Details: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
+- **Scope.** National statutes in force only: no case law, 通達, local ordinances, or text of repealed
+  and amending acts. イ/ロ/ハ subitems are folded into their item.
+
+## Reproduce
 ```bash
-cd src
-python fetch_egov.py --out snapshot/                 # download an e-Gov law snapshot
-python build_graph.py --corpus snapshot/ --out ../data/   # parse → extract → resolve → export
+jlawcite fetch --zip all_xml.zip       # re-extract an archived snapshot for an exact rebuild
+jlawcite build … --as-of 20260929      # same snapshot + same as-of date → same graph
+jlawcite export --out data             # regenerate the files in /data
+python tools/build_explorer.py         # regenerate explorer.html
+python -m pytest                       # 177 tests
 ```
-Deterministic: same snapshot + same code → byte-identical graph. (Reproducing from an existing
-snapshot directory only needs `build_graph.py`; `fetch_egov.py` just refreshes the corpus.)
 
-### Code (`src/jlawcite/`) — the deterministic resolver, reusable on its own
-```python
-from jlawcite import citation, resolver, parser
-refs, _ = citation.extract_external("会社法第七百三十七条第二項の…")   # -> ExtRef(law='会社法', art=737, …)
-```
-`parser` (e-Gov XML → 条/項/号), `citation` (rule-based extraction + in-law definition anaphora),
-`resolver` (`LawNameIndex`: promulgation/canonical/旧法令名/alias/over-grab-trim resolution).
-
-## Honest limitations
-- **Recall is not complete (~68% raw).** Misses are dominated by (a) extraction artifacts / co-references and
-  (b) **out-of-scope targets** — repealed/renamed laws, treaties, foreign law that have *no node* in a
-  current-only corpus. Verified edges are correct; the graph is a high-precision **lower bound**, not exhaustive.
-- **Current-version only.** ~22% of edges are version-bound references (`旧法`/`改正前`) that collapse to the
-  current version. Not suitable for amendment-propagation analysis without a version layer.
-- **National statutes only** — no local ordinances (条例) or case law.
-- Precision is validated by sample labeling (LLM-proposed + human spot-check); a larger blind multi-annotator
-  round is future work.
+## Documentation
+[CHANGELOG](CHANGELOG.md) · [DATA_CARD](DATA_CARD.md) · [METHODOLOGY](docs/METHODOLOGY.md) ·
+[eval protocol](eval/EVAL_PROTOCOL.md) · detailed Korean docs: [dataset](docs/ko/DATASET.md),
+[schema & resolution rules](docs/ko/GRAPH_SCHEMA.md), [search](docs/ko/SEARCH.md),
+[improvement handbook](docs/ko/IMPROVING_THE_GRAPH.md)
 
 ## Contributing
-Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The limitations above *are* the roadmap; good places to help:
-- **Blind annotation round** → makes precision/recall *validated* instead of preliminary (label `eval/precision_sample.csv` / `eval/recall_gold_sample.csv`; see [eval/EVAL_PROTOCOL.md](eval/EVAL_PROTOCOL.md)).
-- **Version-aware layer** → resolve the ~22% version-bound edges to specific versions (enables amendment-propagation).
-- **Coverage** → local ordinances (条例) / case law; standard-abbreviation dictionary expansion.
-- **Spotted a wrong edge or a missing citation?** Open a *data issue* (templates in `.github/`).
+Issues and PRs are welcome: [CONTRIBUTING.md](CONTRIBUTING.md). A blind annotation round
+(`eval/`) would turn the preliminary precision into a validated number, and it is the most useful
+single contribution.
 
 ## License
-Code: Apache-2.0. Data/graph: CC-BY-4.0 (source: e-Gov 法令データ, public). See `LICENSE`, `DATA_CARD.md`.
+Code: Apache-2.0. Data: CC BY 4.0 (source: e-Gov 法令データ; NTA 質疑応答事例 for `eval/v2/nta_gold.jsonl`).
+See [DATA_LICENSE.md](DATA_LICENSE.md). This is not legal advice; check e-Gov / 官報 for legal decisions.
 
 ## Citation
-```
+```bibtex
 @misc{jlaw_citegraph_2026,
-  title  = {JLaw-CiteGraph: An open citation graph of Japanese statutory law},
-  year   = {2026},
-  note   = {e-Gov 2026-06-23 snapshot},
-  url    = {https://github.com/yabooung/jp-law-citation-graph}
+  title   = {JLaw-CiteGraph: An open citation graph of Japanese statutory law},
+  version = {2.0.0},
+  year    = {2026},
+  note    = {e-Gov 2026-09-27 snapshot},
+  url     = {https://github.com/yabooung/jp-law-citation-graph}
 }
 ```

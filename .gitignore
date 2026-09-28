@@ -3,3 +3,10 @@ __pycache__/
 snapshot/
 .DS_Store
 _prev_v1/
+
+# v2 build outputs (large; rebuild with jlawcite)
+data/raw/
+data/parsed/
+data/search/
+*.egg-info/
+.pytest_cache/

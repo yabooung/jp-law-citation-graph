@@ -1,2 +1,0 @@
-# jlaw-citegraph — pure Python standard library, no third-party dependencies.
-# Requires Python 3.10+.

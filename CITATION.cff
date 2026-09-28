@@ -8,10 +8,11 @@ authors:
     alias: "yabooung"
     email: "horusr8@gmail.com"
 abstract: >-
-  An open, reproducible citation graph of Japanese national statutory law, built
-  deterministically from official e-Gov law XML: 8,980 laws and 1,212,708 resolved
-  article-level external citation edges (722,426 cross-law; 55,651 distinct law-to-law
-  pairs), with a deterministic rule-based resolver. Snapshot: e-Gov 2026-06-23.
+  An open, reproducible citation graph and search index of Japanese national statutory
+  law, built deterministically from official e-Gov law XML: 8,998 laws at article /
+  paragraph / item level (1.89M nodes, 1.42M resolved citation edges; 70,577 distinct
+  law-to-law pairs), upcoming-amendment metadata, an embedding-free search CLI, and a
+  retrieval benchmark on NTA tax Q&A. Snapshot: e-Gov 2026-09-27.
 keywords:
   - Japanese law
   - legal NLP
@@ -21,6 +22,6 @@ keywords:
   - e-Gov
 license: Apache-2.0
 license-url: "https://github.com/yabooung/jp-law-citation-graph/blob/main/LICENSE"
-version: "1.0.0"
-date-released: "2026-06-23"
+version: "2.0.0"
+date-released: "2026-09-29"
 url: "https://github.com/yabooung/jp-law-citation-graph"

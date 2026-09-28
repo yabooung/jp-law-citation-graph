@@ -1,0 +1,30 @@
+{
+  "gold": {
+    "records": 1700,
+    "with_gold": 1170,
+    "usable": 1170
+  },
+  "evaluated": 1170,
+  "methods": {
+    "bm25": {
+      "queries": 1170,
+      "recall@1": 0.0855,
+      "recall@5": 0.1923,
+      "recall@10": 0.2444,
+      "recall@20": 0.3256,
+      "recall@50": 0.4368,
+      "mrr@50": 0.1404,
+      "sec_per_query": 0.106
+    },
+    "bm25+graph": {
+      "queries": 1170,
+      "recall@1": 0.2564,
+      "recall@5": 0.4026,
+      "recall@10": 0.459,
+      "recall@20": 0.5,
+      "recall@50": 0.5496,
+      "mrr@50": 0.3249,
+      "sec_per_query": 0.109
+    }
+  }
+}

@@ -32,7 +32,8 @@ from .numerals import kanji_to_int
 _ERA_RE = re.compile(
     r"(明治|大正|昭和|平成|令和)"
     r"(元|[一二三四五六七八九十百千]+|\d+)年"
-    r"(法律|政令|省令|府令|規則|条約|勅令|太政官布告|太政官達)"
+    # Issuer may be qualified: 法務省令 / 内閣府令 / 国家公安委員会規則 / …告示
+    r"([一-鿿・]{0,16}?(?:法律|政令|省令|府令|規則|条約|勅令|告示)|太政官布告|太政官達)"
     r"第(元|[一二三四五六七八九十百千]+|\d+)号"
 )
 
@@ -74,19 +75,41 @@ def normalize_promulgation(raw: str) -> str | None:
 def load_aliases(path: Path) -> dict[str, str]:
     """Load alias→canonical map. Skips keys starting with `_` (metadata).
 
-    Conflicts (same alias → different canonicals) raise ValueError so they
-    surface during ingest rather than silently breaking resolution.
+    Conflicts in the primary JSON raise ValueError. v3.0 also merges
+    kit-derived `jp_abbrev_kit.json` (same dir) and a small set of manual
+    aliases via setdefault — primary file always wins.
     """
-    if not path.exists():
-        return {}
-    raw = json.loads(path.read_text(encoding="utf-8"))
     out: dict[str, str] = {}
-    for k, v in raw.items():
-        if k.startswith("_"):
-            continue
-        if k in out and out[k] != v:
-            raise ValueError(f"alias conflict: {k!r} → {out[k]!r} vs {v!r}")
-        out[k] = v
+    if path and path.exists():
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        for k, v in raw.items():
+            if k.startswith("_"):
+                continue
+            if k in out and out[k] != v:
+                raise ValueError(f"alias conflict: {k!r} → {out[k]!r} vs {v!r}")
+            out[k] = v
+    # v3.0 — kit-derived auto-extracted abbrev (corpus 본문 정의 패턴 자동 추출)
+    if path:
+        kit_path = path.parent / "jp_abbrev_kit.json"
+        if kit_path.exists():
+            for k, v in json.loads(kit_path.read_text(encoding="utf-8")).items():
+                if k.startswith("_"):
+                    continue
+                out.setdefault(k, v)
+    # v2.4–v2.6 — 수동 약칭 (broken sample top 검증된 것)
+    out.setdefault("農協法", "農業協同組合法")
+    out.setdefault("番号利用法", "行政手続における特定の個人を識別するための番号の利用等に関する法律")
+    out.setdefault("高齢者医療確保法", "高齢者の医療の確保に関する法律")
+    out.setdefault("情報通信技術活用法", "情報通信技術を活用した行政の推進等に関する法律")
+    out.setdefault("子育て支援法", "子ども・子育て支援法")
+    out.setdefault("財政構造改革法", "財政構造改革の推進に関する特別措置法")
+    out.setdefault("健保法", "健康保険法")
+    out.setdefault("健保令", "健康保険法施行令")
+    out.setdefault("新健保令", "健康保険法施行令")
+    out.setdefault(
+        "指圧師、はり師、きゆう師等に関する法律",
+        "あん摩マツサージ指圧師、はり師、きゆう師等に関する法律",
+    )
     return out
 
 
@@ -121,17 +144,19 @@ _PREFIX_STRIP = re.compile(
     r"準用|準用する)"
 )
 
-# Non-hiragana chars that legitimately precede an over-captured law name
-# (clause markers / punctuation / version prefixes). Hiragana is allowed
+# Trailing tokens that mark "end of law name" — used by suffix index.
+_LAW_SUFFIX_TOKENS = ("法律", "法", "令", "規則", "規程", "条例", "条約", "憲法",
+                      "通達", "告示", "省令", "府令", "勅令", "施行令", "施行規則")
+
+
+# Characters that may legitimately precede a law name inside an over-captured
+# string (clause markers / punctuation / version prefixes). Hiragana is allowed
 # separately. A kanji not in this set is treated as part of a compound law name,
 # blocking the trim — this stops '失業|保険法' / '国債整理基金特別会計|法' from
 # collapsing to a shorter law, while still allowing '第六十二条中|租税特別措置法'
 # and version refs '旧|国民年金法' / '新|地方自治法' (same law, prior/new version).
+# (Ported from JLaw-CiteGraph v1, where it removed ~5,600 false edges.)
 _TRIM_BOUNDARY = set("中、。，．・／（）「」『』〕】　 \t旧新現後前")
-
-# Trailing tokens that mark "end of law name" — used by suffix index.
-_LAW_SUFFIX_TOKENS = ("法律", "法", "令", "規則", "規程", "条例", "条約", "憲法",
-                      "通達", "告示", "省令", "府令", "勅令", "施行令", "施行規則")
 
 
 class LawNameIndex:
@@ -145,8 +170,9 @@ class LawNameIndex:
         5. Strip leading stopwords + retry  same confidence as eventual hit
         6. Strip prefix (新/旧/改正前の) + retry  -0.05 confidence
         6.5 Trim over-grab to longest known-name suffix + exact retry
-                                   confidence of the exact hit (canonical/old/alias)
         7. Suffix match against canonical  confidence 0.85 via='suffix'
+    Steps 6.5 and 7 only cut at a clause / particle / version boundary, never
+    inside a compound name (see `_boundary_before`).
     """
 
     def __init__(
@@ -166,21 +192,11 @@ class LawNameIndex:
             (n for n in canonical_to_id if n.endswith(_LAW_SUFFIX_TOKENS)),
             key=len, reverse=True,
         )
-        # Over-grab trim anchors: full law names only (canonical ∪ 旧法令名) of
-        # length >= 3. The external extractor sometimes over-captures leading
-        # clutter ('第六十二条中租税特別措置法'); trimming to the longest suffix
-        # that is a real law name ('租税特別措置法') both fixes the span and lets
-        # resolution land exactly. Distinct lengths sorted desc → longest-first.
-        # NOTE: alias keys are intentionally EXCLUDED — short generic aliases
-        # ('措置法','通則法') are suffixes of many unrelated full names
-        # ('社会資本整備特別措置法' etc.) and would over-trim them to the alias,
-        # mis-resolving to the wrong law (precision audit 2026-06-24: 14/50
-        # alias errors traced here). Genuine bare-alias uses still resolve via
-        # the alias step in resolve().
+        # Over-grab trim anchors: full law names only (canonical ∪ 旧法令名),
+        # length >= 3. Alias keys are excluded: short generic aliases
+        # ('措置法', '通則法') are suffixes of many unrelated full names.
         self._trim_anchors: set[str] = {
-            n for n in
-            (set(canonical_to_id) | set(self.old_to_id))
-            if len(n) >= 3
+            n for n in (set(canonical_to_id) | set(self.old_to_id)) if len(n) >= 3
         }
         self._trim_lengths: list[int] = sorted(
             {len(n) for n in self._trim_anchors}, reverse=True)
@@ -200,35 +216,19 @@ class LawNameIndex:
                 return ResolvedLaw(lid, 0.9, "alias")
         return None
 
-    def _boundary_before(self, name: str, L: int) -> bool:
-        """True if the char immediately before the L-length suffix is a legit
-        over-grab boundary (clause marker / particle / punctuation), not a kanji
-        that forms a compound law name.
-
-        Guards against trimming a longer (often repealed) law name down to a
-        shorter, different current law: '失業|保険法' or '国債整理基金特別会計|法'
-        have a kanji boundary and must NOT be trimmed, whereas '第六十二条中|租税
-        特別措置法' has a '中' boundary and is a genuine over-grab.
-        """
+    @staticmethod
+    def _boundary_before(name: str, L: int) -> bool:
+        """True if the char before the L-length suffix is an over-grab
+        boundary (clause marker / particle / punctuation), not a kanji that
+        forms a compound law name ('失業|保険法' must not become 保険法)."""
         if L >= len(name):
-            return True  # whole string is the suffix; no prefix to judge
+            return True
         c = name[len(name) - L - 1]
-        return c in _TRIM_BOUNDARY or ("぀" <= c <= "ゟ")  # +hiragana
+        return c in _TRIM_BOUNDARY or ("぀" <= c <= "ゟ")
 
     def trim_overgrab(self, name: str) -> tuple[str, int]:
-        """Trim an over-captured law name to its longest known-law-name suffix.
-
-        Returns (trimmed_name, n_prefix_chars_removed). No anchor found →
-        (name, 0). Only ever returns a suffix OF `name` (never invents text),
-        so it is safe: longest-match picks the most specific real law name.
-        A suffix is only accepted when the preceding char is an over-grab
-        boundary (see `_boundary_before`), so a compound/repealed law name is
-        never collapsed to a shorter different law.
-
-        Callers that track spans should advance the span start by the returned
-        prefix length so the freed leading text (often a swallowed internal
-        ref like '第六十二条中…') becomes visible to extract_internal again.
-        """
+        """Longest known-law-name suffix of `name` at a legal boundary.
+        Returns (trimmed, n_prefix_chars_removed); (name, 0) if none."""
         R = len(name)
         for L in self._trim_lengths:
             if L > R:
@@ -295,10 +295,7 @@ class LawNameIndex:
                                    "prefix_stripped")
             name = stripped
 
-        # 6.5 Trim over-grab to longest known-name suffix + exact retry.
-        # Promotes over-captured names from fuzzy suffix (0.85) to exact
-        # canonical/old_name/alias. Only fires when trimming actually shortened
-        # the name (plen > 0); the trimmed string is an exact dictionary entry.
+        # 6.5 Trim over-grab to the longest known-name suffix + exact retry
         trimmed, plen = self.trim_overgrab(name)
         if plen > 0:
             hit = self._direct(trimmed)
@@ -319,25 +316,35 @@ class LawContext:
     Built from records by `build_law_contexts`. Used to resolve 前条/次条.
     """
     law_id: str
-    section: str  # 'main' or 'suppl' (suppl articles share their own sequence)
+    section: str  # section key: 'main' or 'suppl:{suppl_tag}' (one per 附則 block)
     article_paths: list[str] = field(default_factory=list)
     art_path_to_idx: dict[str, int] = field(default_factory=dict)
     article_id_by_path: dict[str, str] = field(default_factory=dict)
     paragraph_ids_by_path: dict[str, list[tuple[int, str]]] = field(
         default_factory=dict
     )  # art_path → [(pnum, paragraph_id), ...] sorted by pnum
+    item_ids_by_para: dict[tuple[str, int], list[tuple[str, str]]] = field(
+        default_factory=dict
+    )  # (art_path, pnum) → [(item_path, item_id), ...] in document order
+
+
+def section_key(record: dict) -> str:
+    """Context key for a record: 本則 is one sequence, each 附則 block its own."""
+    if (record.get("section") or "main") == "suppl":
+        return f"suppl:{record.get('suppl_tag') or ''}"
+    return "main"
 
 
 def build_law_contexts(records: list[dict]) -> dict[tuple[str, str], LawContext]:
-    """Group records by (law_id, section) and build per-group ordered structure."""
+    """Group records by (law_id, section key) and build per-group ordered structure."""
     grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in records:
-        if r.get("type") not in ("Article", "Paragraph", "SupplArticle", "SupplParagraph"):
+        if r.get("type") not in ("Article", "Paragraph", "SupplArticle", "SupplParagraph",
+                                 "Item"):
             continue
         if not r.get("law_id") or not r.get("article_path"):
             continue
-        section = r.get("section") or "main"
-        grouped[(r["law_id"], section)].append(r)
+        grouped[(r["law_id"], section_key(r))].append(r)
 
     out: dict[tuple[str, str], LawContext] = {}
     for (law_id, section), recs in grouped.items():
@@ -354,6 +361,10 @@ def build_law_contexts(records: list[dict]) -> dict[tuple[str, str], LawContext]
                 pnum = r.get("paragraph_num")
                 if pnum:
                     ctx.paragraph_ids_by_path.setdefault(ap, []).append((pnum, r["id"]))
+            elif r["type"] == "Item" and r.get("paragraph_num"):
+                ipath = r.get("item_path") or str(r.get("item_num"))
+                ctx.item_ids_by_para.setdefault((ap, r["paragraph_num"]), []).append(
+                    (ipath, r["id"]))
         seen_paths.sort(key=_art_path_sort_key)
         ctx.article_paths = seen_paths
         ctx.art_path_to_idx = {p: i for i, p in enumerate(seen_paths)}
@@ -389,6 +400,7 @@ def resolve_referential(
     src_paragraph_num: int | None,
     contexts: dict[tuple[str, str], LawContext],
     last_external_law_id: str | None = None,
+    src_item_path: str | None = None,
 ) -> ReferentialEdge | None:
     """Resolve a single referential token in context. Returns target id or None.
 
@@ -398,8 +410,10 @@ def resolve_referential(
         同法, 同令, 同規則, 同条例   → last externally-cited law (Law node)
         新法, 旧法, 新令, 旧令, ...  → src law (Suppl context: amended/pre-amended)
         本条, 本項, 本法, 本令, 本規則 → self-reference (caller drops, returns None)
-    Tokens not handled (require item-list context):
-        同号, 前号, 前各号, 各号
+        前号, 次号                   → sibling Item (source must be an Item)
+    `src_section` is the section key ('main' / 'suppl:{tag}', see section_key).
+    Tokens not handled here: 同号 (needs the preceding explicit citation —
+    resolved by the caller), 前各号 (multi-target), 各号 (modifier).
     """
     if kind in ("本条", "本項", "本法", "本令", "本規則"):
         return None  # self-ref — no edge needed
@@ -456,5 +470,69 @@ def resolve_referential(
             return ReferentialEdge(paras[new_idx][1])
         return None
 
-    # 同号/前号/前各号/各号 — would need item-list context. Out of scope for now.
+    if kind in ("前号", "次号"):
+        if src_paragraph_num is None or src_item_path is None:
+            return None
+        items = ctx.item_ids_by_para.get((src_art_path, src_paragraph_num), [])
+        idx = next((i for i, (ip, _) in enumerate(items) if ip == src_item_path), None)
+        if idx is None:
+            return None
+        new_idx = idx + (-1 if kind == "前号" else 1)
+        if 0 <= new_idx < len(items):
+            return ReferentialEdge(items[new_idx][1])
+        return None
+
     return None
+
+
+# ---------------------------------------------------------------------------
+# Per-law abbreviation definitions (以下「法」という。)
+# ---------------------------------------------------------------------------
+# 「水先法（昭和二十四年法律第百二十一号。以下「法」という。）」
+# 「改正前の農地法（以下「旧農地法」という。）」
+ABBREV_DEF_PAT = re.compile(
+    r"（(?:(?P<prom>(?:明治|大正|昭和|平成|令和)[^（）。]{1,30}?号)[。、]\s*)?"
+    r"以下[^「」（）]{0,30}?「(?P<abbr>[^」]{1,30})」という。?）"
+)
+_LAWLIKE_ABBR = re.compile(r"(?:法|令|規則|省令|府令|法律|条約|協定|命令)$")
+# Law-name candidate = text after the last clause boundary before the definition.
+_NAME_BOUNDARY = re.compile(r".*[、。）」「\n\s]|.*(?:による|により|に基づく|において)")
+_AMENDING_LAW_HINT = re.compile(
+    r"(?:一部を改正する|改正する|廃止する|整備(?:等)?に関する)(?:法律|政令|省令|府令|規則|命令)$"
+    r"|改正(?:法|令|省令|規則)$|整備法$"
+)
+
+ABBREV_PRE_AMENDMENT = "pre_amendment"
+ABBREV_AMENDING = "amending_law"
+
+
+def extract_abbrev_definitions(text: str) -> list[tuple[str, str | None, str]]:
+    """[(abbr, promulgation | None, full_name_candidate)] for law-like abbreviations."""
+    out = []
+    for m in ABBREV_DEF_PAT.finditer(text):
+        abbr = m.group("abbr")
+        if not _LAWLIKE_ABBR.search(abbr):
+            continue
+        pre = text[max(0, m.start() - 100):m.start()]
+        b = _NAME_BOUNDARY.match(pre)
+        name = pre[b.end():] if b else pre
+        out.append((abbr, m.group("prom"), name))
+    return out
+
+
+def resolve_abbrev_definition(
+    abbr: str, prom: str | None, name: str, index: "LawNameIndex",
+) -> str | None:
+    """law_id, ABBREV_PRE_AMENDMENT, ABBREV_AMENDING, or None (unknown)."""
+    if abbr.startswith("旧") or "改正前の" in name or "廃止前の" in name:
+        return ABBREV_PRE_AMENDMENT
+    hit = index.resolve(name, prom) if (name or prom) else None
+    if hit:
+        return hit.law_id
+    if _AMENDING_LAW_HINT.search(name) or _AMENDING_LAW_HINT.search(abbr):
+        return ABBREV_AMENDING
+    return None
+
+
+def is_amending_law_name(name: str) -> bool:
+    return bool(_AMENDING_LAW_HINT.search(name))

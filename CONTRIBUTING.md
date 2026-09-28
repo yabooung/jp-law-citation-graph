@@ -8,8 +8,7 @@ Thanks for your interest — issues and pull requests are welcome.
 The project's honest limitations *are* the roadmap. High-value contributions, roughly in order:
 
 1. **Blind annotation round — turns preliminary metrics into validated ones.**
-   Precision and recall are currently **preliminary** (LLM-proposed labels + a small human
-   spot-check). The single most valuable contribution is an *independent, blind* labeling round:
+   Precision and recall are currently **preliminary** (small, non-blind hand-checked samples). The single most valuable contribution is an *independent, blind* labeling round:
    - **Precision:** for each edge in `eval/precision_sample.csv`, judge whether the resolved law is
      correct (O / X / unsure) **without** looking at the system's answer.
    - **Recall:** for each chunk in `eval/recall_gold_sample.csv`, mark any *external* (law-to-law)
@@ -22,7 +21,7 @@ The project's honest limitations *are* the roadmap. High-value contributions, ro
    analysis — a frequently-requested use case the current graph cannot support.
 
 3. **Coverage.** Local ordinances (条例), case law, or expanding the standard-abbreviation dictionary
-   (`src/jlawcite/jp_law_aliases.json`; abbreviations are mined by `src/mine_abbreviations.py`).
+   (`src/jlawcite/jp_law_aliases.json`).
 
 4. **Report data issues.** A wrong edge or a missing citation is valuable signal — open an issue with
    the **data issue** template (`.github/ISSUE_TEMPLATE/`). Include the source law/article, the
@@ -30,16 +29,20 @@ The project's honest limitations *are* the roadmap. High-value contributions, ro
 
 ## Dev setup
 
-Core pipeline is pure Python standard library (3.10+), no third-party dependencies.
-
 ```bash
-cd src
-# reproduce the graph from an e-Gov snapshot directory (deterministic)
-python build_graph.py --corpus <snapshot dir> --out ../data/
-# (or fetch a fresh snapshot first: python fetch_egov.py --out snapshot/)
+pip install -e ".[dev]"            # Python 3.11+; core deps: pydantic, tqdm
+python -m pytest                   # 177 tests, incl. an end-to-end two-law mini corpus
+
+jlawcite fetch                     # e-Gov bulk XML → data/raw/law_xml
+jlawcite build --input data/raw/law_xml --csv data/raw/law_xml/all_law_list.csv \
+    --output data/parsed --dump-unresolved   # + every unresolved citation with context
+jlawcite validate --data data/parsed
 ```
 
-The MCP server has its own dep: `pip install -r mcp/requirements.txt`.
+`--dump-unresolved` writes `jp_unresolved_cites.jsonl`, the starting point for improving
+resolution (see `docs/ko/IMPROVING_THE_GRAPH.md` §7).
+
+The MCP server has its own dep: `pip install -e ".[mcp]"`.
 
 ## Guidelines
 
@@ -48,7 +51,7 @@ The MCP server has its own dep: `pip install -r mcp/requirements.txt`.
 - **New resolution paths** must carry a `via` label and a `confidence`, so users can trust-filter.
 - **Precision over recall** — prefer missing an edge to emitting a wrong one (the graph is a
   high-precision lower bound by design).
-- **Back data/graph claims with how you measured** — measurement scripts live in `src/` and `eval/`.
+- **Back data/graph claims with how you measured** — measurement scripts live in `src/jlawcite/pipeline/` and `eval/`.
   A claimed number with no reproducible script won't be merged.
 - Match the surrounding code style; keep comments in English.
 

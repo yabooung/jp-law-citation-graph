@@ -13,6 +13,13 @@ network for grounding** — something a text-only law lookup cannot do.
 | `what_law_cites(law)` | laws cited by the given law (outgoing) |
 | `citation_path(a, b)` | shortest citation path between two laws (≤4 hops) |
 | `get_law(query)` | law metadata + in/out degree + e-Gov link |
+| `pending_amendments(law)` | upcoming amendments: 施行日, amending law, 施行日備考 *(v2)* |
+| `get_provision(citation)` | `民法第七百九条` → article text + what it cites / what cites it *(v2, needs index)* |
+| `search_statutes(query)` | BM25 keyword or natural-language search over provisions *(v2, needs index)* |
+
+`get_provision` and `search_statutes` read the local search index. Build it once from the repo root
+with `pip install -e . && jlawcite fetch && jlawcite build … && jlawcite index` (see the main README),
+or point `JLAWCITE_DB` at an existing `jp_search.sqlite`.
 
 Graph queries are deterministic; `resolve_citation` uses the same deterministic resolver as the
 pipeline (built from the public law list — canonical + alias paths).
@@ -37,6 +44,6 @@ Then ask, e.g., *"What laws cite 個人情報保護法?"* or *"Resolve the citat
 ## Example
 ```
 get_law("民法")            → {law_id: 129AC0000000089, cites_count: 22, cited_by_count: 412, …}
-what_cites("個人情報の保護に関する法律")  → 110 citing laws
+what_cites("個人情報の保護に関する法律")  → 111 citing laws
 citation_path("会社法", "民法")  → 会社法 → 民法 (1 hop)
 ```

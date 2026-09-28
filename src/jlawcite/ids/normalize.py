@@ -1,4 +1,4 @@
-"""JP article_key normalization.
+"""JP article_key normalization (v2.0).
 
 See `docs/GRAPH_SCHEMA_V2.md` §2.2 for the authoritative ID rules.
 
@@ -6,7 +6,7 @@ Supported forms:
     Law node          : {law_id}                                 — uses LAW_ID_RE
     Article           : {law_id}_a{art_path}
     Paragraph         : {law_id}_a{art_path}_p{pnum}
-    Item              : {law_id}_a{art_path}_p{pnum}_i{item_num}
+    Item              : {law_id}_a{art_path}_p{pnum}_i{item_path}   (item_path '3' | '12-2')
     SupplArticle      : {law_id}_asup-{tag}-{art_path}
     SupplParagraph    : {law_id}_asup-{tag}-{art_path}_p{pnum}
     Attachment        : {law_id}_at-{annex_id}
@@ -35,7 +35,7 @@ from ..numerals import kanji_to_int
 ARTICLE_KEY_RE = re.compile(
     r"^[A-Za-z0-9]+"
     r"(?:"
-    r"_a[A-Za-z0-9][A-Za-z0-9_-]*(?:_p\d+(?:_i\d+)?)?"  # Article / Paragraph / Item / Suppl*
+    r"_a[A-Za-z0-9][A-Za-z0-9_-]*(?:_p\d+(?:_i\d+(?:-\d+)*)?)?"  # Article / Paragraph / Item / Suppl*
     r"|_at-[A-Za-z0-9][A-Za-z0-9_-]*"                    # Attachment
     r"|_h[A-Z][A-Za-z0-9_-]*"                            # Hierarchy
     r")"
@@ -83,7 +83,7 @@ def make_article_key(
     law_id: str,
     art_path: str,
     paragraph_num: int | None = 1,
-    item_num: int | None = None,
+    item_num: int | str | None = None,
     suffix: str | None = None,
     section: str = "main",
     suppl_tag: str | None = None,
@@ -93,9 +93,10 @@ def make_article_key(
     Args:
         law_id: e-Gov 法令番号 (e.g., '340AC0000000033')
         art_path: '10', '10-2', etc.
-        paragraph_num: 1-indexed Paragraph number. Pass `None` for an Article-level
-            node (no `_p` segment).
-        item_num: 1-indexed Item (号) number. Requires `paragraph_num`.
+        paragraph_num: 1-indexed Paragraph 번호. Pass `None` for an Article-level
+            node (no `_p` segment, v2.0 신규).
+        item_num: 1-indexed Item(号) 번호, or branch path '12-2' (第十二号の二).
+            Requires `paragraph_num`. v2.0 신규.
         suffix: legacy v1 suffix ('_add' / '_attachment') — avoid for new code.
         section: 'main' or 'suppl'.
         suppl_tag: when section='suppl', the AmendLawNum tag (≤16 chars).
@@ -125,7 +126,7 @@ def make_article_key(
 
 
 def make_attachment_key(law_id: str, annex_id: str) -> str:
-    """別表 / 様式 / 別記 node ID.
+    """別表 / 様式 / 別記 노드 ID. v2.0 신규.
 
     Args:
         annex_id: e.g. '1', '2-3', or any safe slug. Hyphen/underscore allowed.
@@ -137,7 +138,7 @@ def make_attachment_key(law_id: str, annex_id: str) -> str:
 
 
 def make_hierarchy_key(law_id: str, level_path: str) -> str:
-    """編/章/節/款 node ID.
+    """編/章/節/款 노드 ID. v2.0 신규.
 
     Args:
         level_path: compact code such as 'P1C2S1' (Part1 Chapter2 Section1).

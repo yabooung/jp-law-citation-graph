@@ -1,4 +1,4 @@
-"""e-Gov 法令 XML → graph records.
+"""e-Gov 法令 XML → graph records (v2.0).
 
 See `docs/GRAPH_SCHEMA_V2.md` §2 for the authoritative node model.
 
@@ -26,8 +26,10 @@ from __future__ import annotations
 
 import csv
 import re
+import unicodedata
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Iterator
 
@@ -127,60 +129,124 @@ def extract_mst_id(xml_dir_name: str) -> str:
 # ---------------------------------------------------------------------------
 # Text collection helpers (scoped — no descendant leakage)
 # ---------------------------------------------------------------------------
+def _text(elem: ET.Element | None) -> str:
+    """Full text of an element including inline markup (<Ruby>, <Sup>, <Sub>,
+    <Line>, <ArithFormula>, <QuoteStruct> …). Ruby readings (<Rt>) are dropped
+    so 「激<Ruby>甚<Rt>じん</Rt></Ruby>災害」 reads 激甚災害. `elem.text` alone
+    stops at the first child element and silently truncates the sentence."""
+    if elem is None:
+        return ""
+    parts = [elem.text or ""]
+    for ch in elem:
+        if ch.tag != "Rt":
+            parts.append(_text(ch))
+        parts.append(ch.tail or "")
+    return "".join(parts)
+
+
+def _iter_top(elem: ET.Element, tags: frozenset[str] | set[str]):
+    """Yield descendants whose tag is in `tags`, without descending into them
+    (a <Sentence> inside a <QuoteStruct> inside a <Sentence> is yielded once,
+    as part of its outer sentence)."""
+    for ch in elem:
+        if ch.tag in tags:
+            yield ch
+        else:
+            yield from _iter_top(ch, tags)
+
+
+_SENTENCE = frozenset({"Sentence"})
+_SUBITEM_RE = re.compile(r"Subitem\d+$")
+
+
 def _direct_paragraph_text(para_elem: ET.Element) -> str:
     """Concatenate Paragraph's direct sentences. Excludes nested Item/Subitem."""
     parts: list[str] = []
     for ps in para_elem.findall("ParagraphSentence"):
-        for s in ps.findall("Sentence"):
-            if s.text:
-                parts.append(s.text)
+        parts += [_text(x) for x in _iter_top(ps, _SENTENCE)]
     # Some XMLs put <Sentence> directly under Paragraph
-    for s in para_elem.findall("Sentence"):
-        if s.text:
-            parts.append(s.text)
-    return "\n".join(parts).strip()
+    parts += [_text(x) for x in para_elem.findall("Sentence")]
+    return "\n".join(p for p in parts if p).strip()
 
 
 def _item_text(item_elem: ET.Element) -> str:
     """Concatenate Item text including its Subitem* descendants (flattened)."""
     parts: list[str] = []
-    title = item_elem.findtext("ItemTitle") or ""
+    title = _text(item_elem.find("ItemTitle"))
     if title:
         parts.append(title.strip())
     for ist in item_elem.findall("ItemSentence"):
-        for s in ist.iter("Sentence"):
-            if s.text:
-                parts.append(s.text)
-    for s in item_elem.findall("Sentence"):
-        if s.text:
-            parts.append(s.text)
-    # Subitem* are flattened (not emitted as separate nodes)
+        parts += [_text(x) for x in _iter_top(ist, _SENTENCE)]
+    parts += [_text(x) for x in item_elem.findall("Sentence")]
+    # Subitem* are flattened (not emitted as separate nodes in v2.0), in
+    # document order; each level contributes only its own title + sentence.
     for sub in item_elem.iter():
-        if sub is item_elem:
+        if sub is item_elem or not _SUBITEM_RE.match(sub.tag):
             continue
-        if sub.tag.startswith("Subitem"):
-            sub_title = sub.findtext("Subitem1Title") or sub.findtext("Subitem2Title") \
-                        or sub.findtext("Subitem3Title") or sub.findtext("Subitem4Title") or ""
-            if sub_title:
-                parts.append(sub_title.strip())
-            for s in sub.iter("Sentence"):
-                if s.text:
-                    parts.append(s.text)
+        sub_title = _text(sub.find(f"{sub.tag}Title"))
+        if sub_title:
+            parts.append(sub_title.strip())
+        sent = sub.find(f"{sub.tag}Sentence")
+        if sent is not None:
+            parts += [_text(x) for x in _iter_top(sent, _SENTENCE)]
     return "\n".join(p for p in parts if p).strip()
 
 
 def _hierarchy_title(elem: ET.Element, tag: str) -> str:
     title_tag = _HIERARCHY_TITLE_TAG.get(tag, "")
-    return (elem.findtext(title_tag) or "").strip()
+    return _text(elem.find(title_tag)).strip() if title_tag else ""
+
+
+# Text-bearing tags found inside Appdx* payloads.
+# AppdxTable mostly nests <Sentence>; AppdxStyle/AppdxFormat/AppdxNote use
+# StyleStruct/FormatStruct/NoteStruct wrappers whose inner text often lives
+# in non-Sentence tags (RelatedArticleNum, *StructTitle, RemarksLabel, etc.).
+# <Fig> is excluded — image-only reference, no text content.
+_ATTACHMENT_TEXT_TAGS = frozenset({
+    "Sentence",
+    "RelatedArticleNum",
+    "RemarksLabel",
+    "ItemTitle",
+    "StyleStructTitle",
+    "FormatStructTitle",
+    "NoteStructTitle",
+    "FigStructTitle",
+    "TableStructTitle",
+    "ArithFormulaNum",
+})
 
 
 def _attachment_text(elem: ET.Element) -> str:
-    """Best-effort flatten of Appdx* contents into a single text blob."""
+    """Best-effort flatten of Appdx* contents into a single text blob.
+
+    Walks the entire subtree and collects text from a known set of leaf
+    text-bearing tags. The Appdx* title element is captured separately by
+    `_emit_attachment` and may be re-collected here as the recursive walk
+    does not exclude it; that's acceptable for downstream search/citation.
+    """
     parts: list[str] = []
-    for s in elem.iter("Sentence"):
-        if s.text:
-            parts.append(s.text)
+    for sub in _iter_top(elem, _ATTACHMENT_TEXT_TAGS):
+        t = _text(sub).strip()
+        if t:
+            parts.append(t)
     return "\n".join(parts).strip()
+
+
+# Attachment ID prefix per Appdx* kind, so 別表第一 and 様式第一 of the same
+# law get distinct IDs (`_at-1` vs `_at-style-1`). 別表 keeps the bare form.
+_ATTACHMENT_KIND_PREFIX = {
+    "AppdxTable": "",
+    "AppdxStyle": "style-",
+    "AppdxFormat": "format-",
+    "AppdxNote": "note-",
+    "AppdxFig": "fig-",
+    "AppdxNotice": "notice-",
+    "Appdx": "appdx-",
+}
+
+
+def attachment_kind_prefix(tag: str) -> str:
+    return _ATTACHMENT_KIND_PREFIX.get(tag, "other-")
 
 
 def _attachment_subtype(tag: str) -> str:
@@ -234,13 +300,18 @@ def parse_law_xml(
         return [], [], stats
 
     root = tree.getroot()
-    title = (root.findtext(".//LawTitle") or law_name or law_id).strip()
-    law_num = (root.findtext(".//LawNum") or "").strip()  # promulgation_no
+    law_title_elem = root.find(".//LawTitle")
+    title = (_text(law_title_elem) or law_name or law_id).strip()
+    law_num = _text(root.find(".//LawNum")).strip()  # promulgation_no
 
     # ---- Law node (root) ----
     law_attrs = {"mst_id": mst_id, "law_title": title}
     if law_num:
         law_attrs["promulgation_no"] = law_num
+    # Official short names, e.g. Abbrev="激甚法,激甚災害法"
+    abbrev = (law_title_elem.get("Abbrev") if law_title_elem is not None else "") or ""
+    if abbrev:
+        law_attrs["abbrevs"] = [a.strip() for a in abbrev.split(",") if a.strip()]
     records.append(ParsedRecord(
         id=law_id,
         title=title,
@@ -261,15 +332,19 @@ def parse_law_xml(
 
     # ---- SupplProvision ----
     for spi, sp in enumerate(root.iter("SupplProvision"), start=1):
-        amend_law = sp.get("AmendLawNum", "") or sp.get("Extract", "") or f"sp{spi}"
-        amend_tag = re.sub(r"[^A-Za-z0-9]+", "", amend_law)[:16] or f"sp{spi}"
-        for art in sp.findall("Article"):
-            _emit_article(art, parent_id=law_id, section="suppl",
-                          suppl_tag=amend_tag, ctx=ctx)
+        amend_law_num = sp.get("AmendLawNum", "")
+        # AmendLawNum is 和暦 kanji, so this is almost always `sp{i}`. Never
+        # fall back to the Extract flag ("true") — that collided across blocks.
+        amend_tag = re.sub(r"[^A-Za-z0-9]+", "", amend_law_num)[:16] or f"sp{spi}"
+        ctx.suppl_amend_law_num = amend_law_num
+        _walk_container(sp, parent_id=law_id, section="suppl",
+                        suppl_tag=amend_tag, ctx=ctx)
+        ctx.suppl_amend_law_num = None
 
     # ---- Attachments (Appdx*) ----
     for elem in root.iter():
-        if not elem.tag.startswith(_APPDX_PREFIX):
+        # Appdx* containers only — not their AppdxTableTitle-style children
+        if not elem.tag.startswith(_APPDX_PREFIX) or elem.tag.endswith("Title"):
             continue
         _emit_attachment(elem, ctx)
 
@@ -289,17 +364,52 @@ class _Context:
     edges: list[tuple[str, str, str]]
     seen: set[str]
     stats: ParseStats
+    suppl_amend_law_num: str | None = None  # AmendLawNum of the SupplProvision being walked
+
+
+# Article path used for the synthetic Article that holds <Paragraph>s placed
+# directly under MainProvision / SupplProvision (no <Article> wrapper). 第0条
+# never occurs in real statutes, so it cannot collide.
+SYNTHETIC_ART_PATH = "0"
+
+
+def _walk_container(elem: ET.Element, parent_id: str, section: str,
+                    suppl_tag: str | None, ctx: _Context) -> None:
+    """Emit Articles found anywhere below a SupplProvision (incl. Chapter
+    wrappers) plus a synthetic Article for bare <Paragraph> children."""
+    direct_paras = [ch for ch in elem if ch.tag == "Paragraph"]
+    if direct_paras:
+        _emit_synthetic_article(direct_paras, parent_id, section, suppl_tag, ctx)
+    for child in elem:
+        if child.tag == "Article":
+            _emit_article(child, parent_id=parent_id, section=section,
+                          suppl_tag=suppl_tag, ctx=ctx)
+        elif child.tag in _HIERARCHY_LEVELS:
+            _walk_container(child, parent_id, section, suppl_tag, ctx)
+
+
+def _emit_synthetic_article(paras: list[ET.Element], parent_id: str, section: str,
+                            suppl_tag: str | None, ctx: _Context) -> None:
+    art = ET.Element("Article", Num=SYNTHETIC_ART_PATH)
+    art.extend(paras)
+    title = "附則" if section == "suppl" else ctx.law_title
+    _emit_article(art, parent_id=parent_id, section=section,
+                  suppl_tag=suppl_tag, ctx=ctx, title=title, synthetic=True)
 
 
 def _walk_main(elem: ET.Element, parent_id: str, hpath: str, ctx: _Context) -> None:
     """Recursive walk of MainProvision. Emits Hierarchy nodes and routes Articles."""
+    direct_paras = [ch for ch in elem if ch.tag == "Paragraph"]
+    if direct_paras:
+        _emit_synthetic_article(direct_paras, parent_id, "main", None, ctx)
     for child in elem:
         tag = child.tag
         if tag in _HIERARCHY_LEVELS:
             num_attr = child.get("Num", "")
             level_code = _HIERARCHY_LEVELS[tag]
-            num_int = kanji_to_int(num_attr) if num_attr else None
-            num_str = str(num_int) if num_int is not None else (num_attr or "X")
+            # '1_2' (第一章の二) → '1-2'; must not collapse onto '1'
+            num_str = (article_path_from_num_attr(num_attr) if num_attr else None) \
+                or num_attr or "X"
             new_hpath = f"{hpath}{level_code}{num_str}"
             try:
                 hid = make_hierarchy_key(ctx.law_id, new_hpath)
@@ -307,7 +417,9 @@ def _walk_main(elem: ET.Element, parent_id: str, hpath: str, ctx: _Context) -> N
                 ctx.stats.skipped += 1
                 continue
             if hid in ctx.seen:
+                # Still walk the subtree so its Articles are not lost.
                 ctx.stats.dup_ids += 1
+                _walk_main(child, parent_id=hid, hpath=new_hpath, ctx=ctx)
                 continue
             ctx.seen.add(hid)
             ctx.records.append(ParsedRecord(
@@ -335,6 +447,8 @@ def _emit_article(
     section: str,
     suppl_tag: str | None,
     ctx: _Context,
+    title: str | None = None,
+    synthetic: bool = False,
 ) -> None:
     """Emit Article + child Paragraphs (+ child Items) under the given parent."""
     art_num_str = art_elem.get("Num", "")
@@ -343,7 +457,10 @@ def _emit_article(
         ctx.stats.skipped += 1
         return
 
-    art_title = (art_elem.findtext("ArticleTitle") or f"第{art_path}条").strip()
+    art_title = (title or _text(art_elem.find("ArticleTitle")) or f"第{art_path}条").strip()
+    base_attrs = {"mst_id": ctx.mst_id, "law_title": ctx.law_title}
+    if section == "suppl" and ctx.suppl_amend_law_num:
+        base_attrs["suppl_amend_law_num"] = ctx.suppl_amend_law_num
     article_id = make_article_key(
         law_id=ctx.law_id, art_path=art_path, paragraph_num=None,
         section=section, suppl_tag=suppl_tag,
@@ -364,7 +481,7 @@ def _emit_article(
         article_path=art_path,
         suppl_tag=suppl_tag,
         section=section,
-        raw_attributes={"mst_id": ctx.mst_id, "law_title": ctx.law_title},
+        raw_attributes={**base_attrs, **({"synthetic": True} if synthetic else {})},
     ))
     ctx.edges.append((parent_id, article_id, "CONTAINS"))
     if section == "main":
@@ -406,7 +523,7 @@ def _emit_article(
             paragraph_num=pnum,
             suppl_tag=suppl_tag,
             section=section,
-            raw_attributes={"mst_id": ctx.mst_id, "law_title": ctx.law_title},
+            raw_attributes=dict(base_attrs),
         ))
         ctx.edges.append((article_id, para_id, "CONTAINS"))
         if section == "main":
@@ -417,16 +534,15 @@ def _emit_article(
         # Items (号)
         for item in para.findall("Item"):
             inum_str = item.get("Num", "")
-            try:
-                inum = int(inum_str.split("_")[0]) if inum_str else None
-            except ValueError:
-                inum = None
-            if inum is None:
+            # '12_2' (第十二号の二) → item_path '12-2', item_num 12
+            item_path = article_path_from_num_attr(inum_str) if inum_str else None
+            if item_path is None:
                 ctx.stats.skipped += 1
                 continue
+            inum = int(item_path.split("-")[0])
             item_id = make_article_key(
                 law_id=ctx.law_id, art_path=art_path, paragraph_num=pnum,
-                item_num=inum, section=section, suppl_tag=suppl_tag,
+                item_num=item_path, section=section, suppl_tag=suppl_tag,
             )
             if item_id in ctx.seen:
                 ctx.stats.dup_ids += 1
@@ -435,7 +551,7 @@ def _emit_article(
             ctx.records.append(ParsedRecord(
                 id=item_id,
                 type="Item",
-                title=f"{node_title} 第{inum}号",
+                title=f"{node_title} 第{item_path.replace('-', 'の')}号",
                 text=_item_text(item),
                 law_id=ctx.law_id,
                 parent_id=para_id,
@@ -444,7 +560,7 @@ def _emit_article(
                 item_num=inum,
                 suppl_tag=suppl_tag,
                 section=section,
-                raw_attributes={"mst_id": ctx.mst_id, "law_title": ctx.law_title},
+                raw_attributes={**base_attrs, "item_path": item_path},
             ))
             ctx.edges.append((para_id, item_id, "CONTAINS"))
             if section == "main":
@@ -501,7 +617,7 @@ def _emit_attachment(elem: ET.Element, ctx: _Context) -> None:
         for tag in ("AppdxTableTitle", "AppdxStyleTitle",
                     "AppdxFormatTitle", "AppdxNoteTitle", "AppdxFigTitle",
                     "AppdxNoticeTitle", "AppdxTitle"):
-            t = elem.findtext(tag)
+            t = _text(elem.find(tag))
             if t:
                 raw_num = t
                 break
@@ -513,7 +629,7 @@ def _emit_attachment(elem: ET.Element, ctx: _Context) -> None:
         ctx.stats.skipped += 1
         return
     try:
-        att_id = make_attachment_key(ctx.law_id, annex_slug)
+        att_id = make_attachment_key(ctx.law_id, attachment_kind_prefix(elem.tag) + annex_slug)
     except ValueError:
         ctx.stats.skipped += 1
         return
@@ -526,7 +642,7 @@ def _emit_attachment(elem: ET.Element, ctx: _Context) -> None:
     for tag in ("AppdxTableTitle", "AppdxStyleTitle", "AppdxFormatTitle",
                 "AppdxNoteTitle", "AppdxFigTitle", "AppdxNoticeTitle",
                 "AppdxTitle"):
-        t = elem.findtext(tag)
+        t = _text(elem.find(tag))
         if t:
             title_text = t.strip()
             break
@@ -549,75 +665,114 @@ def _emit_attachment(elem: ET.Element, ctx: _Context) -> None:
     ctx.stats.attachments += 1
 
 
+_ANNEX_KANJI_NUM = re.compile(r"[〇一二三四五六七八九十百千]+")
+
+
 def _slugify_annex_id(raw: str) -> str:
     """Convert annex identifier to a safe slug for IDs.
 
-    Strips kanji/non-alphanumeric, leaving digits/letters/hyphens.
-    Falls back to kanji-to-int extraction if no digits.
+    Matches the `AttachmentRef.annex_id` convention ('1', '1-2') so that
+    別表第一 / 第一号様式の二 resolve from 「別表第一」-style references.
+    Parenthetical notes like （第五条関係） are ignored. An annex without any
+    number (a law's sole 別表 / 別記様式) gets '0'.
     """
+    raw = unicodedata.normalize("NFKC", raw)  # 様式第２ → 様式第2
+    raw = re.sub(r"[（(][^）)]*[）)]", "", raw)
     s = re.sub(r"[^\w]", "-", raw, flags=re.UNICODE)
     s = re.sub(r"-+", "-", s).strip("-")
-    # Pull a leading number if possible
-    m = re.search(r"\d+", s)
+    nums = re.findall(r"[0-9]+", s)
+    if nums:
+        return "-".join(nums)
+    # Kanji numerals: first number (+ optional の-branch)
+    m = _ANNEX_KANJI_NUM.search(raw)
     if m:
-        # Compose: leading number + any following hyphenated digits
-        nums = re.findall(r"\d+", s)
-        if nums:
-            return "-".join(nums)
-    # Fallback: kanji number extraction
-    n = kanji_to_int(raw.replace("第", "").replace("号", "").replace("表", "").strip())
-    if n is not None:
-        return str(n)
-    # Last resort: ascii-only chars
-    ascii_safe = re.sub(r"[^A-Za-z0-9_-]", "", s)
-    return ascii_safe
+        n = kanji_to_int(m.group(0))
+        # の-branch may follow directly (様式第一の二) or after 号様式 (第一号様式の二)
+        e = re.search(r"の([〇一二三四五六七八九十百千]+)", raw[m.end():])
+        eda = kanji_to_int(e.group(1)) if e else None
+        if n is not None:
+            return f"{n}-{eda}" if eda is not None else str(n)
+    # Last resort: ascii-only chars; no number at all → sole annex '0'
+    ascii_safe = re.sub(r"[^A-Za-z0-9_-]", "", s).strip("-_")
+    return ascii_safe or "0"
 
 
 # ---------------------------------------------------------------------------
-# CSV-driven XML discovery (unchanged from v1)
+# Version discovery (current vs pending)
 # ---------------------------------------------------------------------------
-def find_law_xmls(xml_base: Path, csv_fp: Path | None = None) -> Iterator[tuple[str, Path]]:
-    """Walk all e-Gov XML directories. Yields (law_name, xml_path) tuples.
+# The e-Gov bulk dump ships every *known* version of a law: the one currently
+# in force plus any 未施行 versions already promulgated. Directory names are
+# `{law_id}_{YYYYMMDD 施行日}_{amend_law_id}`; the CSV 施行日 column is in
+# 和暦 (e.g. 令和九年六月二十三日) so we take dates from the directory name and
+# join CSV rows via the 本文URL tail (`.../{law_id}/{YYYYMMDD}_{amend_law_id}`).
+@dataclass
+class LawVersion:
+    law_id: str
+    mst_id: str              # "{YYYYMMDD}_{amend_law_id}"
+    enforcement_date: str    # YYYYMMDD
+    xml_path: Path
+    law_name: str = ""
+    amend_law_name: str = ""
+    amend_law_num: str = ""
+    amend_promulgation_date: str = ""   # 和暦, as given by e-Gov
+    enforcement_note: str = ""          # 施行日備考 (e.g. 政令で定める日)
+    url: str = ""
 
-    Selects the latest 施行日 per law_id when CSV is provided.
-    """
+
+def list_law_versions(xml_base: Path, csv_fp: Path | None = None) -> dict[str, list[LawVersion]]:
+    """All versions per law_id, sorted oldest → newest by (施行日, amend id)."""
+    meta: dict[str, list[str]] = {}
     if csv_fp and csv_fp.exists():
-        name_for_id: dict[str, tuple[str, str]] = {}
         with csv_fp.open(encoding="utf-8-sig") as f:
             r = csv.reader(f)
-            try:
-                next(r)  # header
-            except StopIteration:
-                pass
+            next(r, None)  # header
             for row in r:
                 if len(row) < 13:
                     continue
-                name, sehkoubi, law_id = row[2], row[9] or "00000000", row[11]
-                if law_id not in name_for_id or sehkoubi > name_for_id[law_id][1]:
-                    name_for_id[law_id] = (name, sehkoubi)
+                meta[f"{row[11]}_{row[12].rstrip('/').rsplit('/', 1)[-1]}"] = row
 
-        for law_id, (name, _) in name_for_id.items():
-            matches = list(xml_base.glob(f"{law_id}_*"))
-            for d in matches:
-                xml_path = d / f"{d.name}.xml"
-                if xml_path.exists():
-                    yield (name, xml_path)
-                    break
-    else:
-        # No CSV — pick latest 施行日 per law_id to avoid emitting duplicate
-        # nodes across versions. Directory format: {law_id}_{YYYYMMDD}_{amend}.
-        latest: dict[str, tuple[str, Path]] = {}
-        for d in xml_base.iterdir():
-            if not d.is_dir():
-                continue
-            xml_path = d / f"{d.name}.xml"
-            if not xml_path.exists():
-                continue
-            parts = d.name.split("_")
-            law_id = parts[0]
-            sehkoubi = parts[1] if len(parts) > 1 else "00000000"
-            existing = latest.get(law_id)
-            if existing is None or sehkoubi > existing[0]:
-                latest[law_id] = (sehkoubi, xml_path)
-        for law_id, (_, xml_path) in latest.items():
-            yield (law_id, xml_path)
+    by_law: dict[str, list[LawVersion]] = {}
+    for d in xml_base.iterdir():
+        xml_path = d / f"{d.name}.xml"
+        if not d.is_dir() or not xml_path.exists():
+            continue
+        law_id, _, mst_id = d.name.partition("_")
+        v = LawVersion(law_id=law_id, mst_id=mst_id,
+                       enforcement_date=mst_id.split("_")[0] or "00000000",
+                       xml_path=xml_path)
+        row = meta.get(d.name)
+        if row:
+            v.law_name, v.amend_law_name, v.amend_law_num = row[2], row[6], row[7]
+            v.amend_promulgation_date, v.enforcement_note, v.url = row[8], row[10], row[12]
+        by_law.setdefault(law_id, []).append(v)
+
+    for versions in by_law.values():
+        versions.sort(key=lambda v: v.mst_id)
+    return by_law
+
+
+def split_current_pending(
+    versions: list[LawVersion], as_of: str,
+) -> tuple[LawVersion, list[LawVersion], bool]:
+    """(current, pending, in_force) for one law as of YYYYMMDD `as_of`.
+
+    current = latest version with 施行日 <= as_of. A law with no version in
+    force yet falls back to its earliest version with in_force=False, so it
+    still appears in the corpus.
+    """
+    past = [v for v in versions if v.enforcement_date <= as_of]
+    pending = [v for v in versions if v.enforcement_date > as_of]
+    if past:
+        return past[-1], pending, True
+    return pending[0], pending[1:], False
+
+
+def find_law_xmls(
+    xml_base: Path, csv_fp: Path | None = None, as_of: str | None = None,
+) -> Iterator[tuple[str, Path]]:
+    """Yield (law_name, xml_path) for the version of each law in force at
+    `as_of` (YYYYMMDD, default today)."""
+    as_of = as_of or date.today().strftime("%Y%m%d")
+    for law_id, versions in list_law_versions(xml_base, csv_fp).items():
+        current, _, _ = split_current_pending(versions, as_of)
+        yield (current.law_name or law_id, current.xml_path)

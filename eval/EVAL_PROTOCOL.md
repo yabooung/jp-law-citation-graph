@@ -30,3 +30,12 @@ Goal: replace the n=32 estimate with a tight interval.
 - Both reported per resolution path / section, with the out-of-scope (OOS) denominator stated.
 
 Files: `precision_sample.csv`, `recall_gold_sample.csv`, `compute_kappa.py`, `aggregate_precision.py`.
+
+
+## v2 additions (`eval/v2/`)
+- `nta_gold.jsonl`: 1,700 NTA 質疑応答事例 cases, 1,170 with article-level answers. It serves as the
+  retrieval benchmark (`jlawcite eval` → `nta_retrieval_results.json`).
+- `precision_template_v2.csv`: 20 random edges per resolution rule from the v2 graph, with source
+  context, for the blind precision round described in §A. Label column `label_O_X` is empty.
+  The preliminary v2 figures in `docs/METHODOLOGY.md` came from a non-blind check during development.
+- The v1 files (`precision_sample.csv`, `recall_gold_sample.csv`) refer to the v1 graph.

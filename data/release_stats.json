@@ -1,0 +1,71 @@
+{
+  "egov_snapshot": "2026-09-27",
+  "as_of": "20260929",
+  "laws": 8998,
+  "external_edges": 621623,
+  "external_cross_law_edges": 526919,
+  "external_self_edges": 94704,
+  "law_to_law_pairs": 70577,
+  "edges_by_rel": {
+    "CITES": 1417648,
+    "DELEGATES_TO": 67666,
+    "REFERS_TO_ATTACHMENT": 37377,
+    "AMENDS": 117
+  },
+  "external_by_via": {
+    "defined_abbrev": 246433,
+    "canonical": 140552,
+    "enum_carryover": 89847,
+    "same_as_last": 61144,
+    "promulgation": 55857,
+    "prefix_stripped": 17713,
+    "anaphora_family": 4865,
+    "alias": 2669,
+    "amended_self": 1319,
+    "suffix": 695,
+    "old_name": 529
+  },
+  "pending_versions": 1649,
+  "top_cited_laws": [
+    [
+      "地方自治法",
+      1250
+    ],
+    [
+      "会社法",
+      650
+    ],
+    [
+      "独立行政法人通則法",
+      560
+    ],
+    [
+      "児童福祉法",
+      524
+    ],
+    [
+      "行政手続法",
+      471
+    ],
+    [
+      "金融商品取引法",
+      453
+    ],
+    [
+      "民法",
+      451
+    ],
+    [
+      "市町村の合併の特例に関する法律",
+      442
+    ],
+    [
+      "学校教育法",
+      392
+    ],
+    [
+      "行政手続における特定の個人を識別するための番号の利用等に関する法律",
+      390
+    ]
+  ]
+}

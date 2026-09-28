@@ -11,6 +11,12 @@ Tools:
   what_law_cites(law)      laws cited by the given law (outgoing)
   citation_path(a, b)      shortest citation path between two laws (<=4 hops)
   get_law(query)           look up a law (id/name) + metadata + degree
+  pending_amendments(law)  upcoming amendments (施行日, amending law)        [v2]
+  get_provision(citation)  「民法第七百九条」 → article text + citing/cited   [v2, needs index]
+  search_statutes(query)   BM25 keyword / natural-language search           [v2, needs index]
+
+get_provision / search_statutes use the search index built by `jlawcite index`
+(path: $JLAWCITE_DB or <repo>/data/search/jp_search.sqlite).
 
 Run:  pip install -r requirements.txt
       python server.py          # stdio MCP server
@@ -20,6 +26,7 @@ Data: reads ../data/laws.csv, ../data/cites_law_to_law.csv and the resolver
 from __future__ import annotations
 
 import csv
+import os
 import sys
 from collections import defaultdict, deque
 from pathlib import Path
@@ -27,6 +34,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 from jlawcite import citation, resolver  # noqa: E402
+
+_DB_PATH = Path(os.environ.get("JLAWCITE_DB", ROOT / "data" / "search" / "jp_search.sqlite"))
 
 # ---- load graph ------------------------------------------------------------
 _NAME, _ID = {}, {}          # law_id -> name ; name -> law_id
@@ -75,8 +84,9 @@ def resolve_citation(text: str) -> list[dict]:
         hit = _IDX.resolve(name, er.promulgation)
         out.append({"cited_text": er.raw, "law": (_NAME.get(hit.law_id) if hit else None),
                     "law_id": (hit.law_id if hit else None),
-                    "article": er.article_num, "via": (hit.via if hit else None),
-                    "resolved": hit is not None})
+                    "article": er.article_path, "paragraph": er.paragraph,
+                    "item": er.item_path, "suppl": er.suppl,
+                    "via": (hit.via if hit else None), "resolved": hit is not None})
     return out
 
 
@@ -128,6 +138,57 @@ def get_law(query: str) -> dict:
             "url": _URL.get(lid), "cites_count": len(_OUT[lid]), "cited_by_count": len(_IN[lid])}
 
 
+# ---- v2: amendments, provisions, search -------------------------------------
+_PENDING = defaultdict(list)
+with (ROOT / "data" / "pending_versions.csv").open(encoding="utf-8") as _f:
+    for _r in csv.DictReader(_f):
+        _PENDING[_r["law_id"]].append(_r)
+
+
+def pending_amendments(law: str) -> dict:
+    """Upcoming amendments of a law: 施行日, amending law, 施行日備考 (e-Gov 未施行 versions)."""
+    lid = _resolve_name(law)
+    if not lid:
+        return {"error": f"law not found: {law}"}
+    return {"law": _NAME.get(lid), "law_id": lid, "pending": _PENDING.get(lid, [])}
+
+
+def _db():
+    if not _DB_PATH.exists():
+        raise FileNotFoundError(
+            f"search index not found at {_DB_PATH} — build it with `jlawcite index`")
+    from jlawcite.search import SearchDB
+    return SearchDB(_DB_PATH)
+
+
+def get_provision(citation_text: str) -> dict:
+    """Text of a provision from a citation string (「民法第七百九条」, 「所得税法施行令14条2項」,
+    official abbreviations) or node id, with the laws/articles it cites and that cite it."""
+    try:
+        db = _db()
+        res = db.lookup(citation_text)
+    except Exception as e:  # noqa: BLE001 — surfaced to the LLM as a message
+        return {"error": str(e)}
+    refs = db.refs(res["node"]["id"], rels=["CITES"], limit=40)
+    brief = lambda e, side: {"node": e[side], "title": e.get(f"{side}_title"),
+                             "law": e.get(f"{side}_law_title"), "raw": e.get("raw")}
+    return {"law": res["law"]["title"], "node": res["node"]["id"], "text": res["text"],
+            "cites": [brief(e, "target") for e in refs.get("out", [])],
+            "cited_by": [brief(e, "source") for e in refs.get("in", [])],
+            "pending": res["pending"]}
+
+
+def search_statutes(query: str, law: str | None = None, natural: bool = False,
+                    limit: int = 10) -> dict:
+    """BM25 search over provisions. Space-separated keywords are ANDed; set
+    natural=True for a sentence-style question (character-trigram OR query)."""
+    try:
+        hits = _db().search(query, law=law, natural=natural, limit=limit)
+    except Exception as e:  # noqa: BLE001
+        return {"error": str(e)}
+    return {"hits": [{k: h[k] for k in ("node_id", "heading", "snippet")} for h in hits]}
+
+
 # ---- MCP wiring ------------------------------------------------------------
 def build_server():
     from mcp.server.fastmcp import FastMCP
@@ -137,6 +198,9 @@ def build_server():
     mcp.tool()(what_law_cites)
     mcp.tool()(citation_path)
     mcp.tool()(get_law)
+    mcp.tool()(pending_amendments)
+    mcp.tool()(get_provision)
+    mcp.tool()(search_statutes)
     return mcp
 
 
