@@ -1,6 +1,7 @@
 """Single command-line entry point.
 
     <prog> download  [--snapshot YYYY-MM-DD]  prebuilt search DB from Hugging Face (jlawcite.pipeline.download)
+    <prog> mcp                                MCP server for LLMs (pipeline.mcp_server; extra [mcp])
     <prog> fetch     [--output DIR]           e-Gov bulk XML  (jlawcite.pipeline.fetch_egov)
     <prog> build     --input DIR --output DIR  XML → graph     (jlawcite.pipeline.ingest_full)
     <prog> validate  --data DIR                integrity checks (jlawcite.pipeline.validate)
@@ -20,6 +21,7 @@ import sys
 
 _MODULES = {
     "download": "download",
+    "mcp": "mcp_server",
     "fetch": "fetch_egov",
     "build": "ingest_full",
     "validate": "validate",

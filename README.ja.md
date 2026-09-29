@@ -2,7 +2,7 @@
 
 [English](README.md) · **日本語** · [한국어](README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.1.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.2.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **日本の法令の引用関係を決定論的に解決した、オープンな引用グラフと検索インデックス。**
 
@@ -45,7 +45,7 @@ v2 は（出典, 参照先）の組を1回だけ数えます。詳細は [CHANGE
 ## クイックスタート
 ```bash
 pip install jlawcite                                 # PyPI から CLI とライブラリ
-jlawcite download                                    # 構築済み検索DB（約680MB、最新の月次スナップショット）
+jlawcite download                                    # 構築済み検索DB（ダウンロード約115MB、展開約1分）
 jlawcite get 民法第七百九条
 
 # グラフを再構築する場合:
@@ -75,7 +75,11 @@ jlawcite pending --until 20261231                    # 施行予定の改正
 
 全ノード（189万、本文付き）は GitHub Release に添付するか、クイックスタートで再生成できます。
 
-## MCPサーバー（`mcp/`）
+## MCPサーバー
+Claude Code なら1行で追加できます（[uv](https://docs.astral.sh/uv/) が必要。データは初回起動時に自動ダウンロード）:
+```bash
+claude mcp add jlawcite -- uvx --from "jlawcite[mcp]" jlawcite mcp
+```
 v1 の5ツールに加え、v2 では `get_provision`（引用文字列→条文）、`search_statutes`、
 `pending_amendments` を追加しました。[`mcp/README.md`](mcp/README.md)
 

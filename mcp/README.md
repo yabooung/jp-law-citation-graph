@@ -17,28 +17,29 @@ network for grounding** — something a text-only law lookup cannot do.
 | `get_provision(citation)` | `民法第七百九条` → article text + what it cites / what cites it *(v2, needs index)* |
 | `search_statutes(query)` | BM25 keyword or natural-language search over provisions *(v2, needs index)* |
 
-`get_provision` and `search_statutes` read the local search index. Build it once from the repo root
-with `pip install -e . && jlawcite fetch && jlawcite build … && jlawcite index` (see the main README),
-or point `JLAWCITE_DB` at an existing `jp_search.sqlite`.
+The server ships in the `jlawcite` package (`jlawcite mcp`). On first start, if no data is found,
+it downloads the latest snapshot in the background (as `jlawcite download` does): graph tools are
+ready in seconds, `get_provision` / `search_statutes` after about 2 minutes. To use your own build,
+set `JLAWCITE_DB` (search DB) and `JLAWCITE_DATA` (dir with laws.csv, cites_law_to_law.csv,
+pending_versions.csv), or run it from a repo checkout.
 
 Graph queries are deterministic; `resolve_citation` uses the same deterministic resolver as the
 pipeline (built from the public law list — canonical + alias paths).
 
 ## Run
+Claude Code, one line (needs [uv](https://docs.astral.sh/uv/)):
 ```bash
-pip install -r requirements.txt          # mcp SDK
-python server.py                         # stdio MCP server
+claude mcp add jlawcite -- uvx --from "jlawcite[mcp]" jlawcite mcp
 ```
-
-### Connect to Claude Desktop / Claude Code
-Add to your MCP config (e.g. `claude_desktop_config.json`):
+Claude Desktop (`claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "jlaw-citegraph": { "command": "python", "args": ["/abs/path/to/mcp/server.py"] }
+    "jlawcite": { "command": "uvx", "args": ["--from", "jlawcite[mcp]", "jlawcite", "mcp"] }
   }
 }
 ```
+Without uv: `pip install "jlawcite[mcp]"`, then use `jlawcite mcp` as the command.
 Then ask, e.g., *"What laws cite 個人情報保護法?"* or *"Resolve the citations in this provision."*
 
 ## Example

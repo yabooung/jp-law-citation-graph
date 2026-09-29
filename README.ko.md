@@ -2,7 +2,7 @@
 
 [English](README.md) · [日本語](README.ja.md) · **한국어**
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.1.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.2.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **일본 법령의 인용 관계를 결정론적으로 해석한 공개 인용 그래프이자 검색 인덱스입니다.**
 
@@ -45,7 +45,7 @@ v2는 (출처, 대상) 쌍을 한 번만 셉니다. 자세한 내용은 [CHANGEL
 ## 빠른 시작
 ```bash
 pip install jlawcite                                 # PyPI에서 CLI·라이브러리 설치
-jlawcite download                                    # 미리 빌드한 검색 DB (약 680MB, 최신 월간 스냅샷)
+jlawcite download                                    # 미리 빌드한 검색 DB (다운로드 약 115MB, 풀기 약 1분)
 jlawcite get 民法第七百九条
 
 # 그래프를 직접 다시 빌드하려면:
@@ -75,7 +75,11 @@ jlawcite pending --until 20261231                    # 시행 예정 개정
 
 전체 노드 파일(189만 개, 본문 포함)은 GitHub Release에 첨부되어 있고, 빠른 시작 명령으로 다시 만들 수도 있습니다.
 
-## MCP 서버 (`mcp/`)
+## MCP 서버
+Claude Code에서는 한 줄로 추가합니다([uv](https://docs.astral.sh/uv/) 필요, 데이터는 처음 실행할 때 자동으로 받음):
+```bash
+claude mcp add jlawcite -- uvx --from "jlawcite[mcp]" jlawcite mcp
+```
 v1의 도구 5개에 더해 v2에서 `get_provision`(인용 문자열 → 조문 본문), `search_statutes`,
 `pending_amendments`가 추가됐습니다. 자세한 사용법은 [`mcp/README.md`](mcp/README.md)에 있습니다.
 

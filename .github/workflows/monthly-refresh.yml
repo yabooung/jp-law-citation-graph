@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: "0 18 1 * *"   # 1st of every month, 18:00 UTC (03:00 JST on the 2nd)
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Republish even if the snapshot tag exists"
+        type: boolean
+        default: false
 
 jobs:
   refresh:
@@ -44,4 +49,5 @@ jobs:
       - name: publish to Hugging Face
         run: |
           python tools/publish_hf.py --release work/release --db "$JLAWCITE_DB" \
-            --snapshot-json work/_snapshot.json --as-of "$AS_OF"
+            --snapshot-json work/_snapshot.json --as-of "$AS_OF" \
+            ${{ inputs.force && '--force' || '' }}

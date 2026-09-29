@@ -101,6 +101,94 @@ def _jsonl(path: Path) -> Iterator[dict]:
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
+_INSERT_CHUNK = ("INSERT INTO chunks(node_id, law_id, article_id, section, heading, body) "
+                 "VALUES (?,?,?,?,?,?)")
+
+
+class _Chunker:
+    """Turn nodes (in document order) into search chunks: one per Paragraph /
+    SupplParagraph with its Items appended, plus one per Attachment."""
+
+    def __init__(self) -> None:
+        self.law_title: dict[str, str] = {}
+        self.art_title: dict[str, str] = {}
+        self.rows: list[list] = []     # [node_id, law_id, article_id, section, heading, body]
+        self._pos: dict[str, int] = {}  # paragraph id → index in rows
+
+    def feed(self, n: dict) -> None:
+        t, nid = n["type"], n["id"]
+        if t == "Law":
+            self.law_title[nid] = n["title"]
+        elif t in ("Article", "SupplArticle"):
+            self.art_title[nid] = n["title"]
+        elif t in ("Paragraph", "SupplParagraph"):
+            art_id = n["parent_id"]
+            art = self.art_title.get(art_id, "")
+            lt = self.law_title.get(n["law_id"], n.get("law_title", ""))
+            heading = f"{lt} {art}".strip()
+            if n.get("paragraph_num") and n["paragraph_num"] > 1:
+                heading += f" 第{n['paragraph_num']}項"
+            if t == "SupplParagraph" and not art.startswith("附則"):
+                heading = f"{lt} 附則 {art}".strip()
+            self._pos[nid] = len(self.rows)
+            self.rows.append([nid, n["law_id"], art_id, n.get("section", "main"),
+                              heading, n.get("text") or ""])
+        elif t == "Item":
+            pos = self._pos.get(n["parent_id"])
+            if pos is not None and n.get("text"):
+                self.rows[pos][5] += "\n" + n["text"]
+        elif t == "Attachment":
+            lt = self.law_title.get(n["law_id"], "")
+            self.rows.append([nid, n["law_id"], None, "main",
+                              f"{lt} {n['title']}".strip(), n.get("text") or ""])
+
+
+def pack(db_path: Path, out_path: Path) -> None:
+    """Write a smaller copy of the search DB for download: the chunk table and its
+    FTS index are dropped (they are ~60% of the file) and rebuilt by `unpack`."""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    if out_path.exists():
+        out_path.unlink()
+    src = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    dst = sqlite3.connect(out_path)
+    src.backup(dst)
+    src.close()
+    dst.executescript("DROP TABLE chunks_fts; DROP TABLE chunks;")
+    dst.execute("INSERT OR REPLACE INTO meta VALUES ('packed', '1')")
+    dst.commit()
+    dst.execute("VACUUM")
+    dst.close()
+
+
+def is_packed(db_path: Path) -> bool:
+    con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        return con.execute("SELECT 1 FROM meta WHERE key = 'packed'").fetchone() is not None
+    finally:
+        con.close()
+
+
+def unpack(db_path: Path, progress: bool = True) -> int:
+    """Rebuild the chunk table and FTS index of a `pack`ed DB in place. Returns the chunk count."""
+    con = sqlite3.connect(db_path)
+    con.executescript("PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF;")
+    chunker = _Chunker()
+    cols = ("id", "type", "law_id", "parent_id", "section", "paragraph_num", "title", "text")
+    for row in con.execute(f"SELECT {', '.join(cols)} FROM nodes ORDER BY seq"):
+        chunker.feed(dict(zip(cols, row)))
+    if progress:
+        print(f"[search.unpack] {len(chunker.rows):,} chunks, building FTS (trigram) …", flush=True)
+    schema = _SCHEMA[_SCHEMA.index("CREATE TABLE chunks ("):]
+    con.executescript(schema)
+    con.executemany(_INSERT_CHUNK, chunker.rows)
+    con.execute("CREATE INDEX idx_chunks_law ON chunks(law_id)")
+    con.execute("INSERT INTO chunks_fts(chunks_fts) VALUES ('rebuild')")
+    con.execute("DELETE FROM meta WHERE key = 'packed'")
+    con.commit()
+    con.close()
+    return len(chunker.rows)
+
+
 def build_index(
     parsed_dir: Path,
     db_path: Path,
@@ -123,10 +211,7 @@ def build_index(
 
     # ---- nodes + chunks (single pass; nodes are in document order) ----
     log("nodes / chunks …")
-    art_title: dict[str, str] = {}
-    law_title: dict[str, str] = {}
-    chunk_rows: list[list] = []      # [node_id, law_id, article_id, section, heading, body]
-    chunk_pos: dict[str, int] = {}   # paragraph id → index in chunk_rows
+    chunker = _Chunker()
     node_batch: list[tuple] = []
     law_rows: list[tuple] = []
     abbrev_claims: dict[str, set[str]] = {}
@@ -134,8 +219,8 @@ def build_index(
     for seq, n in enumerate(_jsonl(parsed_dir / "jp_nodes.jsonl")):
         t = n["type"]
         nid = n["id"]
+        chunker.feed(n)
         if t == "Law":
-            law_title[nid] = n["title"]
             for ab in n.get("abbrevs") or []:
                 abbrev_claims.setdefault(ab, set()).add(nid)
             law_rows.append((
@@ -144,27 +229,6 @@ def build_index(
                 n.get("next_enforcement_date"), n.get("pending_version_count", 0),
                 n.get("mst_id"),
             ))
-        elif t in ("Article", "SupplArticle"):
-            art_title[nid] = n["title"]
-        elif t in ("Paragraph", "SupplParagraph"):
-            art_id = n["parent_id"]
-            lt = law_title.get(n["law_id"], n.get("law_title", ""))
-            heading = f"{lt} {art_title.get(art_id, '')}".strip()
-            if n.get("paragraph_num") and n["paragraph_num"] > 1:
-                heading += f" 第{n['paragraph_num']}項"
-            if t == "SupplParagraph" and not art_title.get(art_id, "").startswith("附則"):
-                heading = f"{lt} 附則 {art_title.get(art_id, '')}".strip()
-            chunk_pos[nid] = len(chunk_rows)
-            chunk_rows.append([nid, n["law_id"], art_id, n.get("section", "main"),
-                               heading, n.get("text") or ""])
-        elif t == "Item":
-            pos = chunk_pos.get(n["parent_id"])
-            if pos is not None and n.get("text"):
-                chunk_rows[pos][5] += "\n" + n["text"]
-        elif t == "Attachment":
-            lt = law_title.get(n["law_id"], "")
-            chunk_rows.append([nid, n["law_id"], None, "main",
-                               f"{lt} {n['title']}".strip(), n.get("text") or ""])
         node_batch.append((
             nid, t, n.get("law_id"), n.get("parent_id"), n.get("section"),
             n.get("article_path"), n.get("paragraph_num"),
@@ -178,12 +242,12 @@ def build_index(
             node_batch.clear()
     con.executemany("INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", node_batch)
     con.executemany("INSERT INTO laws VALUES (?,?,?,?,?,?,?,?,?)", law_rows)
-    con.executemany(
-        "INSERT INTO chunks(node_id, law_id, article_id, section, heading, body) "
-        "VALUES (?,?,?,?,?,?)", chunk_rows)
+    chunk_rows = chunker.rows
+    con.executemany(_INSERT_CHUNK, chunk_rows)
     log(f"  {n_nodes:,} nodes, {len(law_rows):,} laws, {len(chunk_rows):,} chunks")
 
     # ---- law names (for citation lookup) ----
+    law_title = chunker.law_title
     names: list[tuple[str, str, str]] = [(title, lid, "canonical") for lid, title in law_title.items()]
     for lid, _t, prom, *_ in law_rows:
         key = normalize_promulgation(prom) if prom else None

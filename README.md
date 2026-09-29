@@ -2,7 +2,7 @@
 
 **English** · [日本語](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ja.md) · [한국어](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.1.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.2.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **An open, deterministic citation graph and search index for Japanese statutory law.**
 
@@ -55,7 +55,7 @@ each (source, target) link once. Full list in [CHANGELOG.md](https://github.com/
 ## Quick start
 ```bash
 pip install jlawcite                                 # CLI + library from PyPI
-jlawcite download                                    # prebuilt search DB (~680 MB, latest monthly snapshot)
+jlawcite download                                    # prebuilt search DB (~115 MB download, ~1 min to unpack)
 jlawcite get 民法第七百九条
 
 # or, to rebuild the graph:
@@ -108,8 +108,12 @@ edges = pd.read_csv("data/cites_law_to_law.csv")
 hubs = edges.groupby("tgt_law")["src_law_id"].nunique().sort_values(ascending=False).head(10)
 ```
 
-## Use it from an LLM: MCP server (`mcp/`)
-`resolve_citation`, `what_cites`, `what_law_cites`, `citation_path`, `get_law`, and in v2
+## Use it from an LLM: MCP server
+One line for Claude Code (needs [uv](https://docs.astral.sh/uv/); data is downloaded on first start):
+```bash
+claude mcp add jlawcite -- uvx --from "jlawcite[mcp]" jlawcite mcp
+```
+Tools: `resolve_citation`, `what_cites`, `what_law_cites`, `citation_path`, `get_law`,
 `get_provision` (citation → text), `search_statutes` and `pending_amendments`.
 See [`mcp/README.md`](https://github.com/yabooung/jp-law-citation-graph/blob/main/mcp/README.md).
 
@@ -186,7 +190,7 @@ See [DATA_LICENSE.md](https://github.com/yabooung/jp-law-citation-graph/blob/mai
 ```bibtex
 @misc{jlaw_citegraph_2026,
   title   = {JLaw-CiteGraph: An open citation graph of Japanese statutory law},
-  version = {2.1.0},
+  version = {2.2.0},
   year    = {2026},
   note    = {e-Gov 2026-09-27 snapshot},
   url     = {https://github.com/yabooung/jp-law-citation-graph}

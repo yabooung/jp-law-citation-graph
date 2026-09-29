@@ -3,14 +3,19 @@
 The dataset is rebuilt from e-Gov every month; each rebuild is tagged with its
 e-Gov snapshot date (YYYY-MM-DD), and `main` is the latest.
 
-    <prog> download                          latest snapshot → ~/.cache/jlawcite/jp_search.sqlite
+    <prog> download                          latest snapshot → ~/.cache/jlawcite/
     <prog> download --snapshot 2026-09-27    a fixed snapshot (for reproducible experiments)
     <prog> download --list                   available snapshots
-    <prog> download --data DIR               also the release data files (laws.csv, edges …)
+    <prog> download --data DIR               also all release data files (edges …)
+
+The DB is shipped packed (no chunk table / FTS index, xz, ~115 MB) and unpacked
+locally (~1 min, ~2.6 GB). laws.csv, cites_law_to_law.csv and pending_versions.csv (used by `jlawcite mcp`)
+are always saved next to the DB.
 
 Layout on the Hub (written by the monthly refresh):
-    index/jp_search.sqlite.gz   gzip of the search DB
-    index/MANIFEST.json         {"snapshot", "as_of", "sha256", "bytes", "gz_bytes"}
+    index/jp_search.sqlite.xz   packed search DB (older snapshots: jp_search.sqlite.gz, unpacked)
+    index/MANIFEST.json         {"snapshot", "as_of", "file", "sha256", "bytes", …}
+                                sha256/bytes are of the DB as shipped (before unpack)
     data/…                      release data files (see export_release)
 
 Environment: $JLAWCITE_HF_REPO (default dbwjspdlagjdyd/jp-law-citation-graph),
@@ -22,19 +27,21 @@ import argparse
 import gzip
 import hashlib
 import json
+import lzma
 import os
-import shutil
 import sys
 import urllib.request
 from pathlib import Path
 
 from tqdm import tqdm
 
+from jlawcite import search as search_lib
 from jlawcite.pipeline.search_cli import CACHE_DB
 
 DEFAULT_REPO = "dbwjspdlagjdyd/jp-law-citation-graph"
 DATA_FILES = ["laws.csv", "cites_edges.jsonl.gz", "cites_law_to_law.csv",
               "cites_all_edges.jsonl.gz", "pending_versions.csv", "release_stats.json"]
+LAW_FILES = ["laws.csv", "cites_law_to_law.csv", "pending_versions.csv"]  # saved next to the DB
 _UA = {"User-Agent": "jlawcite/download"}
 
 
@@ -65,8 +72,9 @@ def fetch_manifest(revision: str) -> dict:
         return json.load(r)
 
 
-def _stream(url: str, dest: Path, *, gunzip: bool, desc: str) -> str:
-    """Download url into dest (via a temp file), optionally gunzipping; return sha256 of dest."""
+def _stream(url: str, dest: Path, *, desc: str) -> str:
+    """Download url into dest (via a temp file), decompressing .gz / .xz by the URL's
+    suffix; return the sha256 of what was written."""
     tmp = dest.with_name(dest.name + ".part")
     h = hashlib.sha256()
     with _open(url) as resp:
@@ -77,7 +85,12 @@ def _stream(url: str, dest: Path, *, gunzip: bool, desc: str) -> str:
                     b = resp.read(n)
                     bar.update(len(b))
                     return b
-            src = gzip.GzipFile(fileobj=_Counted()) if gunzip else _Counted()
+            if url.endswith(".xz"):
+                src = lzma.LZMAFile(_Counted())
+            elif url.endswith(".sqlite.gz"):
+                src = gzip.GzipFile(fileobj=_Counted())
+            else:
+                src = _Counted()
             with tmp.open("wb") as f:
                 while chunk := src.read(1 << 20):
                     h.update(chunk)
@@ -95,11 +108,15 @@ def download_db(revision: str, db: Path, *, force: bool = False) -> dict:
             print(f"[download] up to date: snapshot {manifest['snapshot']} at {db}", file=sys.stderr)
             return manifest
     db.parent.mkdir(parents=True, exist_ok=True)
-    sha = _stream(file_url("index/jp_search.sqlite.gz", revision), db,
-                  gunzip=True, desc=f"jp_search {manifest['snapshot']}")
+    for f in LAW_FILES:   # small; first, so graph-only tools work while the DB unpacks
+        _stream(file_url(f"data/{f}", revision), db.parent / f, desc=f)
+    name = manifest.get("file", "jp_search.sqlite.gz")
+    sha = _stream(file_url(f"index/{name}", revision), db, desc=f"jp_search {manifest['snapshot']}")
     if sha != manifest["sha256"]:
         db.unlink()
         raise RuntimeError(f"sha256 mismatch: got {sha}, manifest {manifest['sha256']}")
+    if search_lib.is_packed(db):
+        search_lib.unpack(db)
     meta_fp.write_text(json.dumps({**manifest, "revision": revision}, ensure_ascii=False, indent=2),
                        encoding="utf-8")
     return manifest
@@ -108,7 +125,7 @@ def download_db(revision: str, db: Path, *, force: bool = False) -> dict:
 def download_data(revision: str, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     for name in DATA_FILES:
-        _stream(file_url(f"data/{name}", revision), out / name, gunzip=False, desc=name)
+        _stream(file_url(f"data/{name}", revision), out / name, desc=name)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -117,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--snapshot", default="main",
                     help="e-Gov snapshot tag (YYYY-MM-DD); default: latest")
     ap.add_argument("--db", type=Path, default=CACHE_DB, help=f"where to put the DB (default: {CACHE_DB})")
-    ap.add_argument("--data", type=Path, help="also download the release data files into this dir")
+    ap.add_argument("--data", type=Path, help="also download all release data files into this dir")
     ap.add_argument("--list", action="store_true", help="list available snapshots and exit")
     ap.add_argument("--force", action="store_true", help="re-download even if up to date")
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)

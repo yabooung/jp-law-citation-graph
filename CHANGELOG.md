@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.2.0 — 2026-09-29
+
+- **MCP server in the package**: `jlawcite mcp` (extra `[mcp]`). One line for Claude Code:
+  `claude mcp add jlawcite -- uvx --from "jlawcite[mcp]" jlawcite mcp`. With no data present it
+  downloads the latest snapshot in the background on first start. `mcp/server.py` is now a shim.
+- **Lighter download**: the search DB is shipped packed (no chunk table / FTS index, xz):
+  **~115 MB instead of ~680 MB**. `jlawcite download` rebuilds the dropped tables locally
+  (~1 min; identical chunks and search results) and also saves laws.csv, cites_law_to_law.csv and
+  pending_versions.csv next to the DB. Snapshots published before this keep the gzip layout and
+  still download.
+- `tools/publish_hf.py --force` (and the workflow's `force` input) republishes a snapshot.
+
 ## v2.1.0 — 2026-09-29
 
 - **`jlawcite download`** fetches the prebuilt search DB (gzip, ~680 MB; sha256-checked) from the
