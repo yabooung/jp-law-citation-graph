@@ -2,7 +2,7 @@
 
 **English** · [日本語](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ja.md) · [한국어](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.2.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.3.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **An open, deterministic citation graph and search index for Japanese statutory law.**
 
@@ -25,7 +25,7 @@ that looks up and searches provisions without embeddings, and an MCP server for 
 | **Law → law network** | 70,577 distinct pairs · 453,390 distinct article-level links between laws |
 | **Citation resolution** | same-law 92.9% · cross-law 82.2% · relative refs (前条/同項/…) 92.2% |
 | **Precision** | ≈98% on hand-checked samples of the rules covering 86% of edges (preliminary, see below) |
-| **Search** | `jlawcite get 民法第七百九条` · BM25 search · on 1,170 real tax questions the citation graph lifts Recall@10 from 0.24 to 0.46 |
+| **Search** | `jlawcite get 民法第七百九条` · BM25 search · on 1,186 real tax questions the citation graph lifts Recall@10 from 0.31 to 0.51 |
 | **Method** | 100% deterministic (rules + dictionaries + document context), no LLM, reproducible from the public e-Gov bulk download |
 | **Updates** | Rebuilt monthly from e-Gov; each snapshot is tagged on Hugging Face (`jlawcite download --list`, `--snapshot YYYY-MM-DD` to pin one) |
 
@@ -118,16 +118,16 @@ Tools: `resolve_citation`, `what_cites`, `what_law_cites`, `citation_path`, `get
 See [`mcp/README.md`](https://github.com/yabooung/jp-law-citation-graph/blob/main/mcp/README.md).
 
 ## Retrieval benchmark
-Each of 1,170 National Tax Agency Q&A cases (質疑応答事例) is a real tax question whose answer cites
+Each of 1,186 National Tax Agency Q&A cases (質疑応答事例) is a real tax question whose answer cites
 specific articles. The question is the query, and hits are counted at the article level
 (`jlawcite eval`).
 
 | method | R@1 | R@5 | R@10 | R@20 | R@50 | MRR@50 | s/query |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| BM25 (character-trigram OR) | 0.086 | 0.192 | 0.244 | 0.326 | 0.437 | 0.140 | 0.11 |
-| BM25 + 1-hop citation graph | **0.256** | **0.403** | **0.459** | **0.500** | **0.550** | **0.325** | 0.11 |
+| BM25 (character-trigram OR) | 0.104 | 0.234 | 0.305 | 0.388 | 0.498 | 0.171 | 0.13 |
+| BM25 + 1-hop citation graph | **0.289** | **0.442** | **0.506** | **0.551** | **0.601** | **0.359** | 0.13 |
 
-<sub>1,170 queries · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
+<sub>1,186 queries (NTA collected 2026-09-29) · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
 
 The one-hop expansion adds the articles that the top hits cite. A retrieved 施行令 paragraph pulls
 up the parent-act article it implements. Both rows use no embeddings; they are a baseline for dense
@@ -190,7 +190,7 @@ See [DATA_LICENSE.md](https://github.com/yabooung/jp-law-citation-graph/blob/mai
 ```bibtex
 @misc{jlaw_citegraph_2026,
   title   = {JLaw-CiteGraph: An open citation graph of Japanese statutory law},
-  version = {2.2.0},
+  version = {2.3.0},
   year    = {2026},
   note    = {e-Gov 2026-09-27 snapshot},
   url     = {https://github.com/yabooung/jp-law-citation-graph}

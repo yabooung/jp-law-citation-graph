@@ -2,7 +2,7 @@
 
 [English](README.md) · [日本語](README.ja.md) · **한국어**
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.2.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.3.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **일본 법령의 인용 관계를 결정론적으로 해석한 공개 인용 그래프이자 검색 인덱스입니다.**
 
@@ -23,7 +23,7 @@
 | **법령 간 네트워크** | 법령 쌍 70,577 · 조 단위 법령 간 링크 453,390 |
 | **인용 해석률** | 같은 법령 안 92.9% · 다른 법령 82.2% · 前条·同項 같은 지시어 92.2% |
 | **정확도** | 전체 엣지의 86%를 차지하는 규칙들을 수작업 표본으로 점검한 결과 약 98% (예비 수치, 아래 참고) |
-| **검색** | `jlawcite get 民法第七百九条` · BM25 검색 · 실제 세무 질문 1,170건에서 인용 그래프를 쓰면 Recall@10이 0.24 → 0.46 |
+| **검색** | `jlawcite get 民法第七百九条` · BM25 검색 · 실제 세무 질문 1,186건에서 인용 그래프를 쓰면 Recall@10이 0.31 → 0.51 |
 | **방법** | 100% 결정론적 (규칙 + 사전 + 문서 내 문맥). LLM 없음. e-Gov 일괄 다운로드에서 그대로 재현 |
 | **갱신** | 매월 e-Gov에서 다시 빌드. 스냅샷마다 Hugging Face에 태그 (`jlawcite download --list`, `--snapshot YYYY-MM-DD`로 고정) |
 
@@ -84,14 +84,14 @@ v1의 도구 5개에 더해 v2에서 `get_provision`(인용 문자열 → 조문
 `pending_amendments`가 추가됐습니다. 자세한 사용법은 [`mcp/README.md`](mcp/README.md)에 있습니다.
 
 ## 검색 벤치마크
-국세청 「質疑応答事例」 1,170건을 씁니다. 모두 답변이 근거 조문을 밝힌 사례입니다. 질문문을 질의로 쓰고, 조 단위로 채점합니다.
+국세청 「質疑応答事例」 1,186건을 씁니다. 모두 답변이 근거 조문을 밝힌 사례입니다. 질문문을 질의로 쓰고, 조 단위로 채점합니다.
 
 | method | R@1 | R@5 | R@10 | R@20 | R@50 | MRR@50 | s/query |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| BM25 (character-trigram OR) | 0.086 | 0.192 | 0.244 | 0.326 | 0.437 | 0.140 | 0.11 |
-| BM25 + 1-hop citation graph | **0.256** | **0.403** | **0.459** | **0.500** | **0.550** | **0.325** | 0.11 |
+| BM25 (character-trigram OR) | 0.104 | 0.234 | 0.305 | 0.388 | 0.498 | 0.171 | 0.13 |
+| BM25 + 1-hop citation graph | **0.289** | **0.442** | **0.506** | **0.551** | **0.601** | **0.359** | 0.13 |
 
-<sub>1,170 queries · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
+<sub>1,186 queries (NTA collected 2026-09-29) · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
 
 1단계 확장은 상위 검색 결과가 인용하는 조문에 점수를 나눠 줍니다. 施行令 항이 검색되면 그 항이 인용한
 모법 조문도 함께 올라옵니다. 두 방법 모두 임베딩을 쓰지 않는 기준선입니다.

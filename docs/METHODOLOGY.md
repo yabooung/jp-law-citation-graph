@@ -114,8 +114,8 @@ The blind, multi-annotator protocol in [eval/EVAL_PROTOCOL.md](../eval/EVAL_PROT
 turn these into validated figures.
 
 ### Retrieval
-See the README benchmark. The citation graph more than doubles Recall@10 on 1,170 NTA questions over
-a character-trigram BM25 baseline, with no embeddings.
+See the README benchmark. On 1,186 NTA questions the citation graph raises Recall@10 from 0.31 to 0.51 over a
+character-trigram BM25 baseline, with no embeddings.
 
 ## Limitations
 - Current law only. Upcoming amendments are metadata (date, amending law), not future text.

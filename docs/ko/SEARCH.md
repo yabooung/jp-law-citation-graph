@@ -151,20 +151,20 @@ SQLite 파일은 그대로 SQL로 조회할 수 있다(읽기 전용으로 열 �
 
 ## 5. 검색 기준선 (NTA 質疑応答事例)
 
-국세청 질의응답사례 중 답변이 조문 단위로 해소된 1,170건을 평가셋으로 쓴다
-(`data/parsed/jp_nta_gold.jsonl`, `pipeline/resolve_gold.py`). 질문문을 질의로, 답변이 근거로 든
+국세청 질의응답사례 중 답변이 조문 단위로 해소된 1,186건을 평가셋으로 쓴다
+(`eval/v2/nta_gold.jsonl`, 2026-09-29 수집 1,598건 중 조 단위 정답이 있는 사례). 질문문을 질의로, 답변이 근거로 든
 조문(Article)을 정답으로 본다.
 
 ```bash
-jlawcite eval --out docs/benchmarks/nta_retrieval_v3.2.json
+jlawcite eval --gold eval/v2/nta_gold.jsonl --out eval/v2/nta_retrieval_results.json
 ```
 
 | method | R@1 | R@5 | R@10 | R@20 | R@50 | MRR@50 | s/query |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| bm25 (char-trigram OR) | 0.086 | 0.192 | 0.244 | 0.326 | 0.437 | 0.140 | 0.10 |
-| bm25 + 1-hop citation graph | **0.256** | **0.403** | **0.459** | **0.500** | **0.550** | **0.325** | 0.11 |
+| bm25 (char-trigram OR) | 0.104 | 0.234 | 0.305 | 0.388 | 0.498 | 0.171 | 0.13 |
+| bm25 + 1-hop citation graph | **0.289** | **0.442** | **0.506** | **0.551** | **0.601** | **0.359** | 0.13 |
 
-(1,170 queries, e-Gov snapshot 2026-09-27, `docs/benchmarks/nta_retrieval_v3.2.json`)
+(1,186 queries, e-Gov snapshot 2026-09-27, `eval/v2/nta_retrieval_results.json`)
 
 - **bm25**: `search --nl`의 청크를 조문으로 묶고, 조문마다 처음 나온 순위를 쓴다.
 - **bm25+graph**: 상위 20개 청크가 CITES로 가리키는 조문에 역순위 점수의 절반을 더한다(1-hop).

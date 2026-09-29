@@ -65,7 +65,7 @@ law_only 17,106 (同法·新法 단독 → 법령 노드).
 | `jp_cites_stats.json` | 해소 통계 전체 (KPI 분자·분모, 범위 밖 항목) |
 | `jp_parse_stats.json` | 법령별 노드 수, `dup_ids`(1,733), `skipped`(19) |
 | `jp_unresolved_cites.jsonl` | (`--dump-unresolved`) 미해소 인용 전부와 앞뒤 문맥 |
-| `jp_nta_gold.jsonl` | 국세청 質疑応答事例 1,700건 (질문·답변·근거 조문) — 1,170건이 조 단위 정답 보유 |
+| `jp_nta_gold.jsonl` | 국세청 質疑応答事例 1,598건 (질문·답변·근거 조문, 2026-09-29 수집) — 1,186건이 조 단위 정답 보유 |
 
 가장 많이 인용되는 법령 (다른 법령에서): 租税特別措置法 22,439 · 金融商品取引法 21,700 · 会社法 16,793 ·
 地方税法 10,115 · 法人税法 9,001 · 保険業法 8,743 · 所得税法 8,503.
@@ -201,7 +201,7 @@ jlawcite eval                                   # NTA 검색 기준선
 - e-Gov는 스냅샷을 계속 갱신한다. 같은 결과를 얻으려면 **같은 `all_xml.zip`**을 보관해 `fetch_egov --zip`으로 풀고, **같은 `--as-of`**를 쓴다.
 - 결정성: 같은 입력이면 V08 해시(정렬된 노드 줄의 sha256)가 같다.
 - 실행 환경: Python 3.12, SQLite 3.49 (FTS5 trigram에는 3.34 이상 필요), Windows 11 / Linux. 전체 과정에 메모리 약 8GB.
-- `resolve_gold`(NTA 골드셋 재생성)에는 NTA 原데이터(`data/raw/nta/shitsugi`)가 필요하다. 이 저장소는 2026-04-25 생성본을 쓴다.
+- `resolve_gold`(NTA 골드셋 재생성)에는 NTA 수집본(사례당 한 줄 JSONL: id·zeimu·url·title·shokai·kaito·kankeihrei)이 필요하다. `eval/v2/nta_gold.jsonl`은 2026-09-29 수집본(1,598건)에 `resolve_gold`를 돌린 결과와 바이트 단위로 같다.
 
 ---
 

@@ -1,6 +1,6 @@
 [project]
 name = "jlawcite"
-version = "2.2.0"
+version = "2.3.0"
 description = "JLaw-CiteGraph: deterministic citation graph and embedding-free search for Japanese statutes (e-Gov 法令)"
 readme = "README.md"
 requires-python = ">=3.11"

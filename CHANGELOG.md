@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.3.0 — 2026-09-30
+
+- **NTA benchmark gold rebuilt** (`eval/v2/nta_gold.jsonl`): 質疑応答事例 re-collected on 2026-09-29
+  (1,598 cases; 1,186 with article-level answers, was 1,700 / 1,170). NTA ids are not stable (70 ids
+  now point to a different question), so queries and answers come from one collection. The new resolver
+  reads every article in a 「、」 list (the old one kept only the first per line), attaches 施行令 articles
+  to the 施行令 rather than the parent act, and parses full-width 枝番 (「第22条の２」 → a22-2).
+  Recall@10 on the 2026-09-27 snapshot: BM25 0.244 → 0.305, BM25+graph 0.459 → 0.506. The old gold
+  gives identical numbers on the same DB, so the change comes from the gold alone.
+- **`resolve_gold` rewritten** with that resolver. It reads a one-line-per-case JSONL collection and
+  reproduces `eval/v2/nta_gold.jsonl` byte for byte from the 2026-09-29 collection. `nta_processor`
+  (the old resolver) is no longer used by the pipeline.
+
 ## v2.2.0 — 2026-09-29
 
 - **MCP server in the package**: `jlawcite mcp` (extra `[mcp]`). One line for Claude Code:

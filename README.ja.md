@@ -2,7 +2,7 @@
 
 [English](README.md) · **日本語** · [한국어](README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.2.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.3.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **日本の法令の引用関係を決定論的に解決した、オープンな引用グラフと検索インデックス。**
 
@@ -23,7 +23,7 @@
 | **法令間ネットワーク** | 法令ペア 70,577 · 条レベルの法令間リンク 453,390 |
 | **引用解決率** | 同一法令内 92.9% · 他法令 82.2% · 前条/同項などの指示語 92.2% |
 | **精度** | エッジの86%を占める規則の手作業サンプルで約98%（暫定 — 下記参照） |
-| **検索** | `jlawcite get 民法第七百九条` · BM25検索 · 実際の税務質問1,170件で引用グラフを使うと Recall@10 が 0.24 → 0.46 |
+| **検索** | `jlawcite get 民法第七百九条` · BM25検索 · 実際の税務質問1,186件で引用グラフを使うと Recall@10 が 0.31 → 0.51 |
 | **手法** | 100%決定論的（規則＋辞書＋文書内文脈）。LLMなし。e-Gov一括ダウンロードから再現可能 |
 | **更新** | e-Govから毎月再構築。各スナップショットはHugging Faceにタグ付け（`jlawcite download --list`、`--snapshot YYYY-MM-DD` で固定） |
 
@@ -84,14 +84,14 @@ v1 の5ツールに加え、v2 では `get_provision`（引用文字列→条文
 `pending_amendments` を追加しました。[`mcp/README.md`](mcp/README.md)
 
 ## 検索ベンチマーク
-国税庁「質疑応答事例」1,170件（回答が根拠条文を示すもの）について、質問文をクエリとし、条単位で評価します。
+国税庁「質疑応答事例」1,186件（回答が根拠条文を示すもの）について、質問文をクエリとし、条単位で評価します。
 
 | method | R@1 | R@5 | R@10 | R@20 | R@50 | MRR@50 | s/query |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| BM25 (character-trigram OR) | 0.086 | 0.192 | 0.244 | 0.326 | 0.437 | 0.140 | 0.11 |
-| BM25 + 1-hop citation graph | **0.256** | **0.403** | **0.459** | **0.500** | **0.550** | **0.325** | 0.11 |
+| BM25 (character-trigram OR) | 0.104 | 0.234 | 0.305 | 0.388 | 0.498 | 0.171 | 0.13 |
+| BM25 + 1-hop citation graph | **0.289** | **0.442** | **0.506** | **0.551** | **0.601** | **0.359** | 0.13 |
 
-<sub>1,170 queries · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
+<sub>1,186 queries (NTA collected 2026-09-29) · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
 
 1ホップ展開では、上位の検索結果が引用する条文にスコアを分配します。施行令の項がヒットすると、
 それが引用する本法の条も上がってきます。いずれも埋め込みを使わない基準値です。

@@ -1,30 +1,30 @@
 {
   "gold": {
-    "records": 1700,
-    "with_gold": 1170,
-    "usable": 1170
+    "records": 1598,
+    "with_gold": 1186,
+    "usable": 1186
   },
-  "evaluated": 1170,
+  "evaluated": 1186,
   "methods": {
     "bm25": {
-      "queries": 1170,
-      "recall@1": 0.0855,
-      "recall@5": 0.1923,
-      "recall@10": 0.2444,
-      "recall@20": 0.3256,
-      "recall@50": 0.4368,
-      "mrr@50": 0.1404,
-      "sec_per_query": 0.106
+      "queries": 1186,
+      "recall@1": 0.1037,
+      "recall@5": 0.2336,
+      "recall@10": 0.3052,
+      "recall@20": 0.3879,
+      "recall@50": 0.4975,
+      "mrr@50": 0.1708,
+      "sec_per_query": 0.126
     },
     "bm25+graph": {
-      "queries": 1170,
-      "recall@1": 0.2564,
-      "recall@5": 0.4026,
-      "recall@10": 0.459,
-      "recall@20": 0.5,
-      "recall@50": 0.5496,
-      "mrr@50": 0.3249,
-      "sec_per_query": 0.109
+      "queries": 1186,
+      "recall@1": 0.2892,
+      "recall@5": 0.4418,
+      "recall@10": 0.5059,
+      "recall@20": 0.5506,
+      "recall@50": 0.6012,
+      "mrr@50": 0.3593,
+      "sec_per_query": 0.129
     }
   }
 }

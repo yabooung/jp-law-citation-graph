@@ -33,7 +33,7 @@ Files: `precision_sample.csv`, `recall_gold_sample.csv`, `compute_kappa.py`, `ag
 
 
 ## v2 additions (`eval/v2/`)
-- `nta_gold.jsonl`: 1,700 NTA 質疑応答事例 cases, 1,170 with article-level answers. It serves as the
+- `nta_gold.jsonl`: 1,598 NTA 質疑応答事例 cases (collected 2026-09-29), 1,186 with article-level answers. It serves as the
   retrieval benchmark (`jlawcite eval` → `nta_retrieval_results.json`).
 - `precision_template_v2.csv`: 20 random edges per resolution rule from the v2 graph, with source
   context, for the blind precision round described in §A. Label column `label_O_X` is empty.
