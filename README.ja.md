@@ -2,7 +2,7 @@
 
 [English](README.md) · **日本語** · [한국어](README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.0.0-informative)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.0.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **日本の法令の引用関係を決定論的に解決した、オープンな引用グラフと検索インデックス。**
 
@@ -43,6 +43,9 @@ v2 は（出典, 参照先）の組を1回だけ数えます。詳細は [CHANGE
 
 ## クイックスタート
 ```bash
+pip install jlawcite                                 # PyPI から CLI とライブラリ
+
+# グラフを再構築する場合:
 git clone https://github.com/yabooung/jp-law-citation-graph && cd jp-law-citation-graph
 pip install -e .                                     # Python 3.11+
 
