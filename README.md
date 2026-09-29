@@ -1,6 +1,6 @@
 # JLaw-CiteGraph 🇯🇵⚖️
 
-**English** · [日本語](README.ja.md) · [한국어](README.ko.md)
+**English** · [日本語](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ja.md) · [한국어](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ko.md)
 
 ![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.0.0-informative)
 
@@ -12,9 +12,9 @@ they point at: 92.9% of same-law and 82.2% of cross-law citations, with the unre
 The result ships as data files, a single-file explorer, a `jlawcite` command-line tool
 that looks up and searches provisions without embeddings, and an MCP server for LLMs.
 
-[![JLaw-CiteGraph interactive explorer](assets/explorer-screenshot.png)](explorer.html)
+[![JLaw-CiteGraph interactive explorer](https://raw.githubusercontent.com/yabooung/jp-law-citation-graph/main/assets/explorer-screenshot.png)](https://github.com/yabooung/jp-law-citation-graph/blob/main/explorer.html)
 
-<sub>[`explorer.html`](explorer.html): pick a law and see what it cites (green) and what cites it (yellow).</sub>
+<sub>[`explorer.html`](https://github.com/yabooung/jp-law-citation-graph/blob/main/explorer.html): pick a law and see what it cites (green) and what cites it (yellow).</sub>
 
 ## At a glance (v2.0, e-Gov snapshot 2026-09-27)
 
@@ -41,7 +41,7 @@ that looks up and searches provisions without embeddings, and an MCP server for 
 | Precision | 0 errors / 400 (LLM-proposed labels) | per-rule samples with confidence intervals; 5 error classes found and fixed |
 
 v1 wrote one line per citation *mention*, so its 1.21M lines hold 173,844 distinct links; v2 counts
-each (source, target) link once. Full list in [CHANGELOG.md](CHANGELOG.md).
+each (source, target) link once. Full list in [CHANGELOG.md](https://github.com/yabooung/jp-law-citation-graph/blob/main/CHANGELOG.md).
 
 ## Who is this for?
 | You are… | You use it to… |
@@ -105,7 +105,7 @@ hubs = edges.groupby("tgt_law")["src_law_id"].nunique().sort_values(ascending=Fa
 ## Use it from an LLM: MCP server (`mcp/`)
 `resolve_citation`, `what_cites`, `what_law_cites`, `citation_path`, `get_law`, and in v2
 `get_provision` (citation → text), `search_statutes` and `pending_amendments`.
-See [`mcp/README.md`](mcp/README.md).
+See [`mcp/README.md`](https://github.com/yabooung/jp-law-citation-graph/blob/main/mcp/README.md).
 
 ## Retrieval benchmark
 Each of 1,170 National Tax Agency Q&A cases (質疑応答事例) is a real tax question whose answer cites
@@ -134,7 +134,7 @@ or hybrid retrievers.
   measure ≈98%. Samples are small (10/10 still has a 72% lower bound) and were not blind, so treat it
   as indicative. Citations inside amending-law 附則 are about 40% right and are flagged with
   confidence 0.4. Citations of pre-amendment text (「旧○○法第N条」) point at the current version and
-  carry `version: "pre_amendment"`. Details: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
+  carry `version: "pre_amendment"`. Details: [docs/METHODOLOGY.md](https://github.com/yabooung/jp-law-citation-graph/blob/main/docs/METHODOLOGY.md).
 - **Scope.** National statutes in force only: no case law, 通達, local ordinances, or text of repealed
   and amending acts. イ/ロ/ハ subitems are folded into their item.
 
@@ -162,19 +162,19 @@ JLaw-CiteGraph adds same-law and relative references (前条・同条・同項�
 upcoming amendments, per-rule precision, and a retrieval evaluation over the whole corpus, all as open data.
 
 ## Documentation
-[CHANGELOG](CHANGELOG.md) · [DATA_CARD](DATA_CARD.md) · [METHODOLOGY](docs/METHODOLOGY.md) ·
-[eval protocol](eval/EVAL_PROTOCOL.md) · detailed Korean docs: [dataset](docs/ko/DATASET.md),
-[schema & resolution rules](docs/ko/GRAPH_SCHEMA.md), [search](docs/ko/SEARCH.md),
-[improvement handbook](docs/ko/IMPROVING_THE_GRAPH.md)
+[CHANGELOG](https://github.com/yabooung/jp-law-citation-graph/blob/main/CHANGELOG.md) · [DATA_CARD](https://github.com/yabooung/jp-law-citation-graph/blob/main/DATA_CARD.md) · [METHODOLOGY](https://github.com/yabooung/jp-law-citation-graph/blob/main/docs/METHODOLOGY.md) ·
+[eval protocol](https://github.com/yabooung/jp-law-citation-graph/blob/main/eval/EVAL_PROTOCOL.md) · detailed Korean docs: [dataset](https://github.com/yabooung/jp-law-citation-graph/blob/main/docs/ko/DATASET.md),
+[schema & resolution rules](https://github.com/yabooung/jp-law-citation-graph/blob/main/docs/ko/GRAPH_SCHEMA.md), [search](https://github.com/yabooung/jp-law-citation-graph/blob/main/docs/ko/SEARCH.md),
+[improvement handbook](https://github.com/yabooung/jp-law-citation-graph/blob/main/docs/ko/IMPROVING_THE_GRAPH.md)
 
 ## Contributing
-Issues and PRs are welcome: [CONTRIBUTING.md](CONTRIBUTING.md). A blind annotation round
+Issues and PRs are welcome: [CONTRIBUTING.md](https://github.com/yabooung/jp-law-citation-graph/blob/main/CONTRIBUTING.md). A blind annotation round
 (`eval/`) would turn the preliminary precision into a validated number, and it is the most useful
 single contribution.
 
 ## License
 Code: Apache-2.0. Data: CC BY 4.0 (source: e-Gov 法令データ; NTA 質疑応答事例 for `eval/v2/nta_gold.jsonl`).
-See [DATA_LICENSE.md](DATA_LICENSE.md). This is not legal advice; check e-Gov / 官報 for legal decisions.
+See [DATA_LICENSE.md](https://github.com/yabooung/jp-law-citation-graph/blob/main/DATA_LICENSE.md). This is not legal advice; check e-Gov / 官報 for legal decisions.
 
 ## Citation
 ```bibtex
