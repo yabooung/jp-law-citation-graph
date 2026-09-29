@@ -22,7 +22,20 @@ from pathlib import Path
 
 from jlawcite.search import CitationLookupError, SearchDB, build_index
 
-DEFAULT_DB = Path(os.environ.get("JLAWCITE_DB", "data/search/jp_search.sqlite"))
+LOCAL_DB = Path("data/search/jp_search.sqlite")
+CACHE_DB = Path(os.environ.get("JLAWCITE_HOME") or Path.home() / ".cache" / "jlawcite") / "jp_search.sqlite"
+
+
+def default_db() -> Path:
+    """$JLAWCITE_DB, else a local build, else a `download`ed DB, else the local build path."""
+    if os.environ.get("JLAWCITE_DB"):
+        return Path(os.environ["JLAWCITE_DB"])
+    if not LOCAL_DB.exists() and CACHE_DB.exists():
+        return CACHE_DB
+    return LOCAL_DB
+
+
+DEFAULT_DB = default_db()
 
 
 def _emit_json(obj) -> None:

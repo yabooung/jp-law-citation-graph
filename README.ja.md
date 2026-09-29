@@ -2,7 +2,7 @@
 
 [English](README.md) · **日本語** · [한국어](README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.0.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.1.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **日本の法令の引用関係を決定論的に解決した、オープンな引用グラフと検索インデックス。**
 
@@ -25,6 +25,7 @@
 | **精度** | エッジの86%を占める規則の手作業サンプルで約98%（暫定 — 下記参照） |
 | **検索** | `jlawcite get 民法第七百九条` · BM25検索 · 実際の税務質問1,170件で引用グラフを使うと Recall@10 が 0.24 → 0.46 |
 | **手法** | 100%決定論的（規則＋辞書＋文書内文脈）。LLMなし。e-Gov一括ダウンロードから再現可能 |
+| **更新** | e-Govから毎月再構築。各スナップショットはHugging Faceにタグ付け（`jlawcite download --list`、`--snapshot YYYY-MM-DD` で固定） |
 
 ## v2 の変更点
 
@@ -44,6 +45,8 @@ v2 は（出典, 参照先）の組を1回だけ数えます。詳細は [CHANGE
 ## クイックスタート
 ```bash
 pip install jlawcite                                 # PyPI から CLI とライブラリ
+jlawcite download                                    # 構築済み検索DB（約680MB、最新の月次スナップショット）
+jlawcite get 民法第七百九条
 
 # グラフを再構築する場合:
 git clone https://github.com/yabooung/jp-law-citation-graph && cd jp-law-citation-graph

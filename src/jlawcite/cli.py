@@ -1,5 +1,6 @@
 """Single command-line entry point.
 
+    <prog> download  [--snapshot YYYY-MM-DD]  prebuilt search DB from Hugging Face (jlawcite.pipeline.download)
     <prog> fetch     [--output DIR]           e-Gov bulk XML  (jlawcite.pipeline.fetch_egov)
     <prog> build     --input DIR --output DIR  XML → graph     (jlawcite.pipeline.ingest_full)
     <prog> validate  --data DIR                integrity checks (jlawcite.pipeline.validate)
@@ -9,7 +10,8 @@
     <prog> eval      [--gold FILE]             NTA retrieval benchmark (jlawcite.pipeline.eval_search)
     <prog> versions  --output FILE             SUPERSEDES chain (jlawcite.pipeline.build_versions)
 
-The search DB path defaults to $JLAWCITE_DB or data/search/jp_search.sqlite.
+The search DB path defaults to $JLAWCITE_DB, else data/search/jp_search.sqlite, else the
+`download` cache (~/.cache/jlawcite/jp_search.sqlite).
 """
 from __future__ import annotations
 
@@ -17,6 +19,7 @@ import importlib
 import sys
 
 _MODULES = {
+    "download": "download",
     "fetch": "fetch_egov",
     "build": "ingest_full",
     "validate": "validate",

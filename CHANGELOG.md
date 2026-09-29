@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.0 — 2026-09-29
+
+- **`jlawcite download`** fetches the prebuilt search DB (gzip, ~680 MB; sha256-checked) from the
+  Hugging Face dataset into `~/.cache/jlawcite/`, so `pip install jlawcite` works without a local
+  build. `--snapshot YYYY-MM-DD` pins a snapshot, `--list` shows them, `--data DIR` adds the release files.
+- **Monthly refresh.** A scheduled workflow rebuilds from the latest e-Gov bulk download, validates,
+  and publishes data, index and benchmark results to Hugging Face, tagged with the e-Gov snapshot date.
+  The data files in this git repo change only with code releases.
+- The default search DB is `$JLAWCITE_DB`, else `data/search/jp_search.sqlite`, else the download cache.
+
 ## v2.0.0 — 2026-09-29 (e-Gov snapshot 2026-09-27)
 
 v2 replaces the v1 pipeline with a structure-level graph builder, adds an embedding-free

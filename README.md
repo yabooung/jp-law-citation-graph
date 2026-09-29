@@ -2,7 +2,7 @@
 
 **English** · [日本語](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ja.md) · [한국어](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.0.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.1.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **An open, deterministic citation graph and search index for Japanese statutory law.**
 
@@ -27,6 +27,7 @@ that looks up and searches provisions without embeddings, and an MCP server for 
 | **Precision** | ≈98% on hand-checked samples of the rules covering 86% of edges (preliminary, see below) |
 | **Search** | `jlawcite get 民法第七百九条` · BM25 search · on 1,170 real tax questions the citation graph lifts Recall@10 from 0.24 to 0.46 |
 | **Method** | 100% deterministic (rules + dictionaries + document context), no LLM, reproducible from the public e-Gov bulk download |
+| **Updates** | Rebuilt monthly from e-Gov; each snapshot is tagged on Hugging Face (`jlawcite download --list`, `--snapshot YYYY-MM-DD` to pin one) |
 
 ## What's new in v2
 
@@ -54,6 +55,8 @@ each (source, target) link once. Full list in [CHANGELOG.md](https://github.com/
 ## Quick start
 ```bash
 pip install jlawcite                                 # CLI + library from PyPI
+jlawcite download                                    # prebuilt search DB (~680 MB, latest monthly snapshot)
+jlawcite get 民法第七百九条
 
 # or, to rebuild the graph:
 git clone https://github.com/yabooung/jp-law-citation-graph && cd jp-law-citation-graph
@@ -183,7 +186,7 @@ See [DATA_LICENSE.md](https://github.com/yabooung/jp-law-citation-graph/blob/mai
 ```bibtex
 @misc{jlaw_citegraph_2026,
   title   = {JLaw-CiteGraph: An open citation graph of Japanese statutory law},
-  version = {2.0.0},
+  version = {2.1.0},
   year    = {2026},
   note    = {e-Gov 2026-09-27 snapshot},
   url     = {https://github.com/yabooung/jp-law-citation-graph}

@@ -1,0 +1,47 @@
+name: monthly refresh
+
+# Rebuild the graph and search DB from the latest e-Gov bulk download and publish them to the
+# Hugging Face dataset, tagged with the e-Gov snapshot date. Skips publishing when that tag
+# already exists. The /data files in this git repo are only updated on code releases.
+
+on:
+  schedule:
+    - cron: "0 18 1 * *"   # 1st of every month, 18:00 UTC (03:00 JST on the 2nd)
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      JLAWCITE_DB: ${{ github.workspace }}/work/jp_search.sqlite
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . huggingface_hub
+      - name: fetch e-Gov
+        run: jlawcite fetch --output work/raw --no-backup
+      - name: build graph
+        run: |
+          echo "AS_OF=$(TZ=Asia/Tokyo date +%Y%m%d)" >> "$GITHUB_ENV"
+          jlawcite build --input work/raw --csv work/raw/all_law_list.csv \
+            --output work/parsed --as-of "$(TZ=Asia/Tokyo date +%Y%m%d)"
+      - name: validate
+        run: jlawcite validate --data work/parsed
+      - name: export release files
+        run: |
+          jlawcite export --parsed work/parsed --csv work/raw/all_law_list.csv \
+            --snapshot work/raw/_snapshot.json --out work/release/data
+          cp work/raw/all_law_list.csv work/raw/_snapshot.json work/
+          rm -rf work/raw   # free disk before indexing
+      - name: search index
+        run: jlawcite index --data work/parsed --csv work/all_law_list.csv
+      - name: retrieval benchmark
+        run: jlawcite eval --db "$JLAWCITE_DB" --gold eval/v2/nta_gold.jsonl --out work/release/nta_retrieval_results.json
+      - name: publish to Hugging Face
+        run: |
+          python tools/publish_hf.py --release work/release --db "$JLAWCITE_DB" \
+            --snapshot-json work/_snapshot.json --as-of "$AS_OF"

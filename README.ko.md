@@ -2,7 +2,7 @@
 
 [English](README.md) · [日本語](README.ja.md) · **한국어**
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.0.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.1.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/dbwjspdlagjdyd/jp-law-citation-graph)
 
 **일본 법령의 인용 관계를 결정론적으로 해석한 공개 인용 그래프이자 검색 인덱스입니다.**
 
@@ -25,6 +25,7 @@
 | **정확도** | 전체 엣지의 86%를 차지하는 규칙들을 수작업 표본으로 점검한 결과 약 98% (예비 수치, 아래 참고) |
 | **검색** | `jlawcite get 民法第七百九条` · BM25 검색 · 실제 세무 질문 1,170건에서 인용 그래프를 쓰면 Recall@10이 0.24 → 0.46 |
 | **방법** | 100% 결정론적 (규칙 + 사전 + 문서 내 문맥). LLM 없음. e-Gov 일괄 다운로드에서 그대로 재현 |
+| **갱신** | 매월 e-Gov에서 다시 빌드. 스냅샷마다 Hugging Face에 태그 (`jlawcite download --list`, `--snapshot YYYY-MM-DD`로 고정) |
 
 ## v2에서 달라진 점
 
@@ -44,6 +45,8 @@ v2는 (출처, 대상) 쌍을 한 번만 셉니다. 자세한 내용은 [CHANGEL
 ## 빠른 시작
 ```bash
 pip install jlawcite                                 # PyPI에서 CLI·라이브러리 설치
+jlawcite download                                    # 미리 빌드한 검색 DB (약 680MB, 최신 월간 스냅샷)
+jlawcite get 民法第七百九条
 
 # 그래프를 직접 다시 빌드하려면:
 git clone https://github.com/yabooung/jp-law-citation-graph && cd jp-law-citation-graph
