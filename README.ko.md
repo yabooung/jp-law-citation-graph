@@ -7,7 +7,7 @@
 **일본 법령의 인용 관계를 결정론적으로 해석한 공개 인용 그래프이자 검색 인덱스입니다.**
 
 일본 정부 공식 [e-Gov](https://laws.e-gov.go.jp/) 법령 XML에서 현행 법령 전체를 조·항·호 단위까지 파싱하고,
-본문 속 인용을 실제로 가리키는 조문에 연결했습니다. 데이터 파일, 단일 파일 탐색기, 임베딩 없이 동작하는
+본문 속 인용을 실제로 가리키는 조문에 연결했습니다(같은 법령 안 92.9%, 다른 법령 82.2%. 연결하지 못한 인용도 목록으로 공개). 데이터 파일, 단일 파일 탐색기, 임베딩 없이 동작하는
 검색 CLI `jlawcite`, LLM용 MCP 서버를 함께 제공합니다.
 
 [![JLaw-CiteGraph 탐색기](assets/explorer-screenshot.png)](explorer.html)
@@ -91,6 +91,9 @@ v1의 도구 5개에 더해 v2에서 `get_provision`(인용 문자열 → 조문
 - 해석률의 분모에서는 대상 본문이 코퍼스에 없는 인용(개정 전 법령, 개정법, 개정법 附則 안의 인용)을 뺐습니다. 이 인용들은 `jp_cites_stats.json`에 따로 집계합니다.
 - **정확도는 예비 수치입니다.** 개발 과정에서 무작위로 뽑은 엣지 180건(규칙당 10–20건)을 원문과 대조했고, 여기서 찾은 오류 유형 5가지를 고쳤습니다. 표본이 작고 블라인드 평가도 아니므로 참고용으로만 봐 주세요. 개정법 附則 안의 인용은 약 40%만 맞아서 confidence 0.4로 표시했습니다. 자세한 내용은 [docs/METHODOLOGY.md](docs/METHODOLOGY.md)와 [docs/ko/DATASET.md](docs/ko/DATASET.md)에 있습니다.
 - 범위는 현행 국가 법령뿐입니다. 판례·통달·조례, 폐지 법령과 개정법의 본문은 들어 있지 않습니다. イ·ロ·ハ 세목은 호 본문에 합쳐져 있습니다.
+
+## 관련 연구
+弁護士ドットコム의 인용 그래프(DDS 2026, 비공개), [DaisukeHori/japan-law](https://github.com/DaisukeHori/japan-law)(CC0, 평가 없음), 법령 참조 해석(Tran 외, ICAIL 2013), 참조 구조를 쓴 조문 검색(Mizuno·狩野, COLIEE 2025 등)이 있습니다. 이 프로젝트는 여기에 같은 법령 안 인용과 지시어, 버전 처리, 규칙별 정확도, 전 법령 대상 검색 평가를 공개 데이터로 더합니다. 자세한 내용은 [README.md](README.md#related-work)에 있습니다.
 
 ## 상세 문서 (한국어)
 [데이터셋 카드](docs/ko/DATASET.md) · [스키마·해석 규칙](docs/ko/GRAPH_SCHEMA.md) · [검색 도구](docs/ko/SEARCH.md) · [개선 핸드북](docs/ko/IMPROVING_THE_GRAPH.md)

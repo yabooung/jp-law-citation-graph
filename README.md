@@ -7,8 +7,9 @@
 **An open, deterministic citation graph and search index for Japanese statutory law.**
 
 Every Japanese law in force is parsed from official [e-Gov](https://laws.e-gov.go.jp/) XML down
-to article (条), paragraph (項) and item (号). Every citation in the text is resolved to the provision
-it points at. The result ships as data files, a single-file explorer, a `jlawcite` command-line tool
+to article (条), paragraph (項) and item (号), and citations in the text are resolved to the provision
+they point at: 92.9% of same-law and 82.2% of cross-law citations, with the unresolved ones listed.
+The result ships as data files, a single-file explorer, a `jlawcite` command-line tool
 that looks up and searches provisions without embeddings, and an MCP server for LLMs.
 
 [![JLaw-CiteGraph interactive explorer](assets/explorer-screenshot.png)](explorer.html)
@@ -145,6 +146,20 @@ jlawcite export --out data             # regenerate the files in /data
 python tools/build_explorer.py         # regenerate explorer.html
 python -m pytest                       # 177 tests
 ```
+
+## Related work
+- **弁護士ドットコム (DDS 2026)** built a citation graph over e-Gov statutes (条・項・号) together with
+  books, guidelines and court decisions. It reports P 98.8 / R 92.1 for law-to-law citations; same-law
+  references are outside its evaluation, and the graph is not public.
+  [paper](https://dbsj.org/wp-content/uploads/2025/11/dds-vol4-no3.pdf)
+- **[DaisukeHori/japan-law](https://github.com/DaisukeHori/japan-law)** publishes about 112k article-level
+  cross-references for about 8,000 laws (CC0), without an accuracy evaluation.
+- Reference resolution in Japanese statutes goes back to Tran, Nguyen & Shimazu (ICAIL 2013). Using
+  citation structure for statute retrieval has been shown on the Japanese Civil Code (Mizuno & Kano,
+  COLIEE 2025; Vuong et al., *Applied Intelligence* 2025) and on Belgian law (Louis et al., EACL 2023).
+
+JLaw-CiteGraph adds same-law and relative references (前条・同条・同項・前号・同法), version selection with
+upcoming amendments, per-rule precision, and a retrieval evaluation over the whole corpus, all as open data.
 
 ## Documentation
 [CHANGELOG](CHANGELOG.md) · [DATA_CARD](DATA_CARD.md) · [METHODOLOGY](docs/METHODOLOGY.md) ·
