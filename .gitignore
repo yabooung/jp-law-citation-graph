@@ -10,3 +10,6 @@ data/parsed/
 data/search/
 *.egg-info/
 .pytest_cache/
+
+# credentials
+.pypirc
