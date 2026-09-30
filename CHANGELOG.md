@@ -1,7 +1,11 @@
 # Changelog
 
-## Unreleased
+## v2.4.0 — 2026-10-01
 
+- **Removed `jlawcite.nta_processor` and `jlawcite.citation.parse_kankeihrei`** (the NTA resolver used
+  until 2.2). It kept only the first citation of each 関係法令 line and attached 施行令 articles to the
+  parent act. Use `jlawcite.pipeline.resolve_gold` (`parse_refs`, `resolve_case`), which has produced
+  `eval/v2/nta_gold.jsonl` since 2.3.0. The graph, the search index and the benchmark numbers are unchanged.
 - `tools/publish_hf.py` also uploads the NTA gold (`eval/nta_gold.jsonl`, the `nta_retrieval` config;
   `--gold`, default `eval/v2/nta_gold.jsonl`), so the monthly refresh keeps it in sync with the repo.
 

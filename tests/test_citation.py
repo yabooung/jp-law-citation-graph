@@ -6,7 +6,6 @@ from jlawcite.citation import (
     extract_external,
     extract_internal,
     parse_eda,
-    parse_kankeihrei,
 )
 
 
@@ -81,25 +80,6 @@ def test_extract_all_separates():
     assert len(out["internal"]) == 1
     assert len(out["referential"]) == 1
     assert out["referential"][0].kind == "前条"
-
-
-def test_kankeihrei_basic():
-    items = ["所得税法第10条", "第15条"]
-    out = parse_kankeihrei(items)
-    assert len(out) == 2
-    assert out[0]["law_name"] == "所得税法"
-    assert out[0]["article_num"] == 10
-    assert out[1]["law_name"] == "所得税法"  # carryover
-    assert out[1]["article_num"] == 15
-    assert out[1]["carryover"] is True
-
-
-def test_kankeihrei_paragraph_carryover():
-    items = ["所得税法第10条第1項", "第3項"]
-    out = parse_kankeihrei(items)
-    assert out[1]["law_name"] == "所得税法"
-    assert out[1]["article_num"] == 10  # article carryover too
-    assert out[1]["paragraph"] == 3
 
 
 # ---------- Phase 4: attachment refs ----------

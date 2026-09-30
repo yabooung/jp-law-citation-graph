@@ -21,8 +21,8 @@ Rules (article level only):
      附則 and pre-amendment laws are out of scope.
   5. `{law_id}_a{article}` is gold if it is a main-provision Article node; otherwise unresolved.
 
-The previous resolver (`nta_processor`) kept only the first citation of each line and attached
-施行令 articles listed after a 施行令 name to the parent act.
+The resolver used until 2.2 (`nta_processor`, removed in 2.4.0) kept only the first citation of each
+line and attached 施行令 articles listed after a 施行令 name to the parent act.
 """
 from __future__ import annotations
 
