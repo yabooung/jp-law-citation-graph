@@ -5,6 +5,8 @@
 
 Uploads (added or replaced; other files such as README.md are left alone):
     data/…                           release data files from `jlawcite export`
+    eval/nta_gold.jsonl              NTA benchmark gold (--gold, default eval/v2/nta_gold.jsonl);
+                                     the `nta_retrieval` config of the dataset card points here
     eval/nta_retrieval_results.json  if present in --release
     index/jp_search.sqlite.xz        search DB packed for download (`jlawcite.search.pack`: no chunk
                                      table / FTS index — `jlawcite download` rebuilds them), xz
@@ -33,6 +35,7 @@ import jlawcite
 from jlawcite.search import pack
 
 REPO = os.environ.get("JLAWCITE_HF_REPO", "dbwjspdlagjdyd/jp-law-citation-graph")
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def snapshot_date(snapshot_json: Path) -> str:
@@ -45,6 +48,7 @@ def main() -> int:
     ap.add_argument("--db", type=Path, required=True, help="search DB from `jlawcite index`")
     ap.add_argument("--snapshot-json", type=Path, required=True, help="_snapshot.json from `jlawcite fetch`")
     ap.add_argument("--as-of", required=True)
+    ap.add_argument("--gold", type=Path, default=ROOT / "eval/v2/nta_gold.jsonl", help="NTA benchmark gold")
     ap.add_argument("--dry-run", action="store_true", help="stage files but do not upload")
     ap.add_argument("--force", action="store_true", help="republish and move the tag if it exists")
     a = ap.parse_args()
@@ -59,9 +63,10 @@ def main() -> int:
     stage = Path(tempfile.mkdtemp(prefix="jlawcite-publish-"))
     try:
         shutil.copytree(a.release / "data", stage / "data")
+        (stage / "eval").mkdir()
+        shutil.copy2(a.gold, stage / "eval" / "nta_gold.jsonl")
         results = a.release / "nta_retrieval_results.json"
         if results.exists():
-            (stage / "eval").mkdir()
             shutil.copy2(results, stage / "eval" / results.name)
         (stage / "index").mkdir()
         packed = stage / "packed.sqlite"
@@ -73,7 +78,7 @@ def main() -> int:
                 h.update(chunk)
                 dst.write(chunk)
         rev = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
-                             cwd=Path(__file__).resolve().parents[1]).stdout.strip()
+                             cwd=ROOT).stdout.strip()
         manifest = {
             "snapshot": tag,
             "as_of": a.as_of,

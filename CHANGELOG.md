@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `tools/publish_hf.py` also uploads the NTA gold (`eval/nta_gold.jsonl`, the `nta_retrieval` config;
+  `--gold`, default `eval/v2/nta_gold.jsonl`), so the monthly refresh keeps it in sync with the repo.
+
 ## v2.3.0 — 2026-09-30
 
 - **NTA benchmark gold rebuilt** (`eval/v2/nta_gold.jsonl`): 質疑応答事例 re-collected on 2026-09-29
