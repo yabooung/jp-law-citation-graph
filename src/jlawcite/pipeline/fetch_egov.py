@@ -24,6 +24,8 @@ import json
 import shutil
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -35,7 +37,26 @@ CSV_NAME = "all_law_list.csv"
 SNAPSHOT_NAME = "_snapshot.json"
 
 
-def download(url: str, dest: Path) -> None:
+# e-Gov occasionally answers 403/429/5xx (maintenance windows, rate limiting); retry those.
+RETRY_STATUS = {403, 408, 429, 500, 502, 503, 504}
+RETRY_DELAYS = (60, 300, 900)   # seconds between attempts
+
+
+def download(url: str, dest: Path, delays: tuple[float, ...] = RETRY_DELAYS) -> None:
+    for attempt, delay in enumerate((*delays, None), start=1):
+        try:
+            _download_once(url, dest)
+            return
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+            code = getattr(e, "code", None)
+            if delay is None or (code is not None and code not in RETRY_STATUS):
+                raise
+            print(f"[fetch] attempt {attempt} failed ({e}); retrying in {delay:.0f}s",
+                  file=sys.stderr)
+            time.sleep(delay)
+
+
+def _download_once(url: str, dest: Path) -> None:
     req = urllib.request.Request(url, headers={"User-Agent": "jlawcite/fetch_egov"})
     with urllib.request.urlopen(req, timeout=120) as resp, dest.open("wb") as f:
         total = int(resp.headers.get("Content-Length") or 0) or None
