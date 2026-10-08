@@ -14,6 +14,10 @@ on:
         description: "Republish even if the snapshot tag exists"
         type: boolean
         default: false
+      skip_gate:
+        description: "Publish even if the regression gate fails (after checking the gate table)"
+        type: boolean
+        default: false
 
 jobs:
   refresh:
@@ -47,6 +51,14 @@ jobs:
         run: jlawcite index --data work/parsed --csv work/all_law_list.csv
       - name: retrieval benchmark
         run: jlawcite eval --db "$JLAWCITE_DB" --gold eval/v2/nta_gold.jsonl --out work/release/nta_retrieval_results.json
+      - name: regression gate (vs the release committed in this repo)
+        # Fails the run before publishing if retrieval or graph counts dropped past a threshold.
+        # Table goes to the job summary. Override once with workflow_dispatch skip_gate=true.
+        continue-on-error: ${{ inputs.skip_gate == true }}
+        run: |
+          python tools/regression_gate.py \
+            --new-results work/release/nta_retrieval_results.json --base-results eval/v2/nta_retrieval_results.json \
+            --new-stats work/release/data/release_stats.json --base-stats data/release_stats.json
       - name: publish to Hugging Face
         run: |
           python tools/publish_hf.py --release work/release --db "$JLAWCITE_DB" \

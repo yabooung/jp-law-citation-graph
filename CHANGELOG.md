@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Monthly refresh: a **regression gate** (`tools/regression_gate.py`) now runs after the retrieval benchmark and
+  stops the publish if the new snapshot is clearly worse than the release in this repo (Recall@10 −0.02,
+  citation edges −3%, delegation edges −5%, laws −2%, …; increases never fail). The table goes to the job
+  summary; `workflow_dispatch skip_gate=true` overrides once.
+
 ## v2.4.1 — 2026-10-09
 
 - The Hugging Face dataset moved to **`yabooung/jp-law-citation-graph`** (account renamed). `jlawcite download`,
