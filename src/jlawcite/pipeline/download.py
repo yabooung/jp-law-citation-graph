@@ -18,7 +18,7 @@ Layout on the Hub (written by the monthly refresh):
                                 sha256/bytes are of the DB as shipped (before unpack)
     data/…                      release data files (see export_release)
 
-Environment: $JLAWCITE_HF_REPO (default dbwjspdlagjdyd/jp-law-citation-graph),
+Environment: $JLAWCITE_HF_REPO (default yabooung/jp-law-citation-graph),
 $JLAWCITE_HF_ENDPOINT (default https://huggingface.co), $JLAWCITE_HOME (cache dir).
 """
 from __future__ import annotations
@@ -38,7 +38,7 @@ from tqdm import tqdm
 from jlawcite import search as search_lib
 from jlawcite.pipeline.search_cli import CACHE_DB
 
-DEFAULT_REPO = "dbwjspdlagjdyd/jp-law-citation-graph"
+DEFAULT_REPO = "yabooung/jp-law-citation-graph"
 DATA_FILES = ["laws.csv", "cites_edges.jsonl.gz", "cites_law_to_law.csv",
               "cites_all_edges.jsonl.gz", "pending_versions.csv", "release_stats.json"]
 LAW_FILES = ["laws.csv", "cites_law_to_law.csv", "pending_versions.csv"]  # saved next to the DB

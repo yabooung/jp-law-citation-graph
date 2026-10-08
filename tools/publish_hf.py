@@ -34,7 +34,7 @@ from huggingface_hub import HfApi
 import jlawcite
 from jlawcite.search import pack
 
-REPO = os.environ.get("JLAWCITE_HF_REPO", "dbwjspdlagjdyd/jp-law-citation-graph")
+REPO = os.environ.get("JLAWCITE_HF_REPO", "yabooung/jp-law-citation-graph")
 ROOT = Path(__file__).resolve().parents[1]
 
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.4.1 — 2026-10-09
+
+- The Hugging Face dataset moved to **`yabooung/jp-law-citation-graph`** (account renamed). `jlawcite download`,
+  `jlawcite mcp` and `tools/publish_hf.py` now default to the new id. The old id still redirects, so earlier
+  versions keep working; set `JLAWCITE_HF_REPO` to override. Data and code are otherwise unchanged.
+
 ## v2.4.0 — 2026-10-01
 
 - **Removed `jlawcite.nta_processor` and `jlawcite.citation.parse_kankeihrei`** (the NTA resolver used
