@@ -32,6 +32,7 @@ from jlawcite.citation import (
     extract_amendments,
     extract_attachment_refs,
     extract_delegations,
+    extract_divisions,
     extract_external,
     extract_internal,
     ENUM_GAP_PAT,
@@ -578,10 +579,30 @@ def main():
             cites_stats[f"external_resolved_{fb}"] = cites_stats.get(
                 f"external_resolved_{fb}", 0) + 1
 
+        # Divisions of other laws right before a parenthesis (v3.3): a bare 第N条
+        # opening that parenthesis is that law's article —
+        # 「行政手続法第二章（申請に対する処分）（第八条（理由の提示）を除く。）」.
+        div_anchors: list[tuple[int, str]] = []
+        div_law: str | None = None
+        for d in extract_divisions(text, mask_spans=spans):
+            if not d.chained:
+                resolved, skip = _resolve_ext_name(
+                    d, src_law_id, ext_history, law_abbrevs,
+                    name_index, family_index, reverse_family)
+                div_law = (resolved.law_id if resolved and not skip
+                           and resolved.law_id in known_law_ids else None)
+            if div_law and div_law != src_law_id:
+                div_anchors.append((d.span[1], div_law))
+
         # Internal refs (same law)
         int_refs = extract_internal(text, mask_spans=spans)
         for ir in int_refs:
-            carry, carry_suppl = _enum_carry(text, ir.span[0], ext_anchors)
+            div_carry = next((lid for end, lid in div_anchors
+                              if not ir.suppl and text[end:ir.span[0]] == "（"), None)
+            if div_carry:
+                carry, carry_suppl = div_carry, False
+            else:
+                carry, carry_suppl = _enum_carry(text, ir.span[0], ext_anchors)
             suppl = ir.suppl or carry_suppl
             if carry in _OUT_OF_SCOPE:
                 cites_stats[f"external_{carry}"] += 1
@@ -604,15 +625,15 @@ def main():
                     cites_stats["external_unresolved_target"] += 1
                     continue
                 tgt_id, fb = edge
+                via = "division_carry" if div_carry else "enum_carryover"
                 cites_edges.append({
                     "source": src_key, "target": tgt_id, "rel": "CITES",
                     "raw": ir.raw, "fallback_level": fb,
-                    "extracted_from": "INTERNAL_PAT/enum_carryover",
+                    "extracted_from": f"INTERNAL_PAT/{via}",
                 })
                 cites_stats[f"external_resolved_{fb}"] = cites_stats.get(
                     f"external_resolved_{fb}", 0) + 1
-                cites_stats["by_via"]["enum_carryover"] = cites_stats["by_via"].get(
-                    "enum_carryover", 0) + 1
+                cites_stats["by_via"][via] = cites_stats["by_via"].get(via, 0) + 1
                 continue
             scope = own_suppl_scope if suppl else ("M", src_law_id)
             explicit.append((ir.span[1], scope, ir.article_path, ir.paragraph, ir.item_path, True))

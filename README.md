@@ -16,13 +16,13 @@ that looks up and searches provisions without embeddings, and an MCP server for 
 
 <sub>[`explorer.html`](https://github.com/yabooung/jp-law-citation-graph/blob/main/explorer.html): pick a law and see what it cites (green) and what cites it (yellow).</sub>
 
-## At a glance (v2.0, e-Gov snapshot 2026-09-27)
+## At a glance (v2.5, e-Gov snapshot 2026-09-27)
 
 | | |
 |---|---|
 | **Laws** | 8,998, each at the version in force on 2026-09-29, plus **1,649 upcoming amendments** (施行日 + amending law) |
 | **Graph** | 1.89M nodes (条・項・号・附則・別表) · 1.42M citation edges · 67,666 delegation edges (政令で定める) · 37,377 別表/様式 references |
-| **Law → law network** | 70,577 distinct pairs · 453,390 distinct article-level links between laws |
+| **Law → law network** | 70,600 distinct pairs · 454,308 distinct article-level links between laws |
 | **Citation resolution** | same-law 92.9% · cross-law 82.2% · relative refs (前条/同項/…) 92.2% |
 | **Precision** | ≈98% on hand-checked samples of the rules covering 86% of edges (preliminary, see below) |
 | **Search** | `jlawcite get 民法第七百九条` · BM25 search · on 1,186 real tax questions the citation graph lifts Recall@10 from 0.31 to 0.51 |
@@ -31,12 +31,12 @@ that looks up and searches provisions without embeddings, and an MCP server for 
 
 ## What's new in v2
 
-| | v1.0 (2026-06) | **v2.0 (2026-09)** |
+| | v1.0 (2026-06) | **v2.5 (2026-10)** |
 |---|---|---|
 | Unit | law → law (article strings) | article / paragraph / item nodes, incl. 附則 and attachments |
 | Edges | cross-law citations | + same-law citations, 前条/同項/前号, delegation, 別表 references |
-| Distinct article-level cross-law links | 173,844 | **453,390** |
-| Law → law pairs | 55,651 | **70,577** |
+| Distinct article-level cross-law links | 173,844 | **454,308** |
+| Law → law pairs | 55,651 | **70,600** |
 | Versions | latest file per law | version in force on a date + upcoming amendments |
 | Search | – | `jlawcite` CLI (lookup, BM25, graph walk) + retrieval benchmark |
 | Precision | 0 errors / 400 (LLM-proposed labels) | per-rule samples with confidence intervals; 5 error classes found and fixed |

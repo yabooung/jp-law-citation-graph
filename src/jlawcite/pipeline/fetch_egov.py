@@ -38,6 +38,7 @@ SNAPSHOT_NAME = "_snapshot.json"
 
 
 # e-Gov occasionally answers 403/429/5xx (maintenance windows, rate limiting); retry those.
+# Ported from the public repo (jp-law-citation-graph PR #1, 5c155cf) so export does not drop it.
 RETRY_STATUS = {403, 408, 429, 500, 502, 503, 504}
 RETRY_DELAYS = (60, 300, 900)   # seconds between attempts
 

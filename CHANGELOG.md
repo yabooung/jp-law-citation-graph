@@ -1,7 +1,19 @@
 # Changelog
 
-## Unreleased
+## v2.5.0 — 2026-10-20
 
+- **Extraction fix: articles in parentheses after another law's 編・章・節・款・目.** In
+  「行政手続法第二章（申請に対する処分）（第八条（理由の提示）を除く。）」 the 第八条 is 行政手続法's, but it
+  was resolved to the citing law's own 第八条. Such a 第N条 (and the 「、」 list that follows it, also after
+  「及び第三章（…）（」) now carries the law of the division reference (`extracted_from`
+  `INTERNAL_PAT/division_carry`, `via` `division_carry` in `cites_edges`). On the 2026-09-27 snapshot:
+  **962 edges added** (284 division_carry, 676 list carry-over, 2 同条) and **387 wrong same-law edges removed**;
+  20 random changed edges checked against the text, all correct. Example: laws citing 行政手続法第8条 3 → 7.
+- `/data` rebuilt from the same snapshot: CITES 1,417,648 → 1,418,223, citations of another law
+  526,919 → 527,879, law→law pairs 70,577 → 70,600; `laws.csv` and `pending_versions.csv` unchanged.
+  The retrieval benchmark is unchanged (BM25+graph Recall@10 0.5059).
+- Hugging Face snapshots published before this release (2026-09-27 … 2026-10-03) were built with the old
+  extraction; the next published snapshot uses the fix.
 - Monthly refresh: a **regression gate** (`tools/regression_gate.py`) now runs after the retrieval benchmark and
   stops the publish if the new snapshot is clearly worse than the release in this repo (Recall@10 −0.02,
   citation edges −3%, delegation edges −5%, laws −2%, …; increases never fail). The table goes to the job

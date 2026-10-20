@@ -2,12 +2,12 @@
   "egov_snapshot": "2026-09-27",
   "as_of": "20260929",
   "laws": 8998,
-  "external_edges": 621623,
-  "external_cross_law_edges": 526919,
-  "external_self_edges": 94704,
-  "law_to_law_pairs": 70577,
+  "external_edges": 622586,
+  "external_cross_law_edges": 527879,
+  "external_self_edges": 94707,
+  "law_to_law_pairs": 70600,
   "edges_by_rel": {
-    "CITES": 1417648,
+    "CITES": 1418223,
     "DELEGATES_TO": 67666,
     "REFERS_TO_ATTACHMENT": 37377,
     "AMENDS": 117
@@ -15,7 +15,7 @@
   "external_by_via": {
     "defined_abbrev": 246433,
     "canonical": 140552,
-    "enum_carryover": 89847,
+    "enum_carryover": 90526,
     "same_as_last": 61144,
     "promulgation": 55857,
     "prefix_stripped": 17713,
@@ -23,7 +23,8 @@
     "alias": 2669,
     "amended_self": 1319,
     "suffix": 695,
-    "old_name": 529
+    "old_name": 529,
+    "division_carry": 284
   },
   "pending_versions": 1649,
   "top_cited_laws": [
@@ -45,7 +46,7 @@
     ],
     [
       "行政手続法",
-      471
+      476
     ],
     [
       "金融商品取引法",

@@ -14,7 +14,7 @@
       "recall@20": 0.3879,
       "recall@50": 0.4975,
       "mrr@50": 0.1708,
-      "sec_per_query": 0.126
+      "sec_per_query": 0.108
     },
     "bm25+graph": {
       "queries": 1186,
@@ -24,7 +24,7 @@
       "recall@20": 0.5506,
       "recall@50": 0.6012,
       "mrr@50": 0.3593,
-      "sec_per_query": 0.129
+      "sec_per_query": 0.108
     }
   }
 }

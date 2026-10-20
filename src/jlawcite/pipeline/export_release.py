@@ -31,7 +31,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 # extracted_from prefixes that denote a citation of a law named in the text
-_EXTERNAL = ("EXTERNAL_FULL_PAT/", "NAKED_LAW_PAT/", "INTERNAL_PAT/enum_carryover")
+_EXTERNAL = ("EXTERNAL_FULL_PAT/", "NAKED_LAW_PAT/", "INTERNAL_PAT/enum_carryover", "INTERNAL_PAT/division_carry")
 
 
 def _jsonl(path: Path):
@@ -42,8 +42,8 @@ def _jsonl(path: Path):
 
 
 def _via(extracted_from: str) -> str:
-    if extracted_from == "INTERNAL_PAT/enum_carryover":
-        return "enum_carryover"
+    if extracted_from in ("INTERNAL_PAT/enum_carryover", "INTERNAL_PAT/division_carry"):
+        return extracted_from.split("/", 1)[1]
     return extracted_from.split("/", 1)[1] if "/" in extracted_from else extracted_from
 
 

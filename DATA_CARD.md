@@ -1,4 +1,4 @@
-# Data Card — JLaw-CiteGraph v2.0
+# Data Card — JLaw-CiteGraph v2.5
 
 ## Source
 - **e-Gov 法令検索** (https://laws.e-gov.go.jp/), official Japanese government law database (Digital Agency).
@@ -21,7 +21,7 @@
 | Nodes | count | | Edges | count |
 |---|---:|---|---|---:|
 | Law | 8,998 | | CONTAINS (tree) | 1,877,998 |
-| Hierarchy (編章節款目) | 26,664 | | CITES | 1,417,648 |
+| Hierarchy (編章節款目) | 26,664 | | CITES | 1,418,223 |
 | Article | 243,277 | | DELEGATES_TO (政令で定める → law) | 67,666 |
 | Paragraph | 504,241 | | REFERS_TO_ATTACHMENT | 37,377 |
 | Item | 515,834 | | AMENDS | 117 |
@@ -36,9 +36,9 @@ Article-less provisions sit under a synthetic article `0`.
 | File | Rows | Notes |
 |---|---:|---|
 | `laws.csv` | 8,998 | v1 columns + `enforcement_date`, `next_enforcement_date`, `pending_versions` |
-| `cites_edges.jsonl.gz` | 621,623 | citations of a named law (526,919 to another law, 94,704 to the law's own amended version such as 新法), article-level, v1 fields + node ids |
-| `cites_law_to_law.csv` | 70,577 | distinct src_law → tgt_law pairs with counts |
-| `cites_all_edges.jsonl.gz` | 1,522,808 | every CITES / DELEGATES_TO / REFERS_TO_ATTACHMENT / AMENDS edge |
+| `cites_edges.jsonl.gz` | 622,586 | citations of a named law (527,879 to another law, 94,707 to the law's own amended version such as 新法), article-level, v1 fields + node ids |
+| `cites_law_to_law.csv` | 70,600 | distinct src_law → tgt_law pairs with counts |
+| `cites_all_edges.jsonl.gz` | 1,523,383 | every CITES / DELEGATES_TO / REFERS_TO_ATTACHMENT / AMENDS edge |
 | `pending_versions.csv` | 1,649 | upcoming amendments (841 laws) |
 
 Counting: one edge per (source node, target node). v1 counted mentions (see CHANGELOG).

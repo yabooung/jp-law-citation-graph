@@ -81,6 +81,10 @@ ORD_XML = """<?xml version="1.0" encoding="UTF-8"?>
         <Paragraph Num="1"><ParagraphSentence><Sentence>テスト法第三条の規定は、同条第二項に規定する者及び同法第一条の者に適用する。</Sentence></ParagraphSentence></Paragraph>
         <Paragraph Num="2"><ParagraphSentence><Sentence>第一条の規定は、前項の場合について準用する。この場合において、同条中「者」とあるのは「法人」と読み替えるものとする。</Sentence></ParagraphSentence></Paragraph>
       </Article>
+      <Article Num="3">
+        <ArticleTitle>第三条</ArticleTitle>
+        <Paragraph Num="1"><ParagraphSentence><Sentence>テスト法第一章（総則）（第一条（目的）を除く。）及び第二章（雑則）（第三条を除く。）の規定は、第二条の処分については、適用しない。</Sentence></ParagraphSentence></Paragraph>
+      </Article>
     </MainProvision>
   </LawBody>
 </Law>
@@ -174,6 +178,18 @@ def test_cross_law_resolution(out):
     assert cites[(s2, f"{ACT_ID}_a3_p2")]["extracted_from"] == "REFERENTIAL/同条"
     # 同法第一条 → last external law
     assert (s2, f"{ACT_ID}_a1") in cites
+
+
+def test_division_exception_carries_the_law(out):
+    _, cites, _, _ = out
+    s3 = f"{ORD_ID}_a3_p1"
+    # 「テスト法第一章（総則）（第一条（目的）を除く。）」 — テスト法第一条, not this order's own 第一条
+    assert cites[(s3, f"{ACT_ID}_a1")]["extracted_from"] == "INTERNAL_PAT/division_carry"
+    assert (s3, f"{ORD_ID}_a1") not in cites
+    # 「…を除く。）及び第二章（雑則）（第三条を除く。）」 — the chained division keeps テスト法
+    assert cites[(s3, f"{ACT_ID}_a3")]["extracted_from"] == "INTERNAL_PAT/division_carry"
+    # 「第二条の処分」 after the divisions is this order's own article
+    assert (s3, f"{ORD_ID}_a2") in cites
 
 
 def test_same_article_skips_paragraph_antecedents(out):

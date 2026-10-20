@@ -87,6 +87,23 @@ ENUM_GAP_PAT = re.compile(
     rf"(?:中「)?$"                                     # 銀行法第十条中「第十一条」
 )
 
+# A division (編・章・節・款・目) of another law followed by a parenthesis:
+# 「行政手続法第二章（申請に対する処分）（第八条（理由の提示）を除く。）」. Not an article
+# citation itself, but a bare 第N条 opening that parenthesis is that law's article
+# (v3.3; before, 第八条 here resolved to the citing law's own 第八条).
+DIVISION_PAT = re.compile(
+    rf"{LAW_NAME_PAT}\s*(?:{PROM_PAT})?\s*"
+    rf"第{_NUM}(?:編|章|節|款|目)(?:の{_NUM})*(?:第{_NUM}(?:章|節|款|目)(?:の{_NUM})*)*"
+    rf"(?:（[^（）]*）)?(?=（)"
+)
+# 「…を除く。）及び第三章（不利益処分）（第十四条…」: a bare division continuing the
+# previous one (same law), after the previous exception parenthesis and a connector.
+BARE_DIVISION_PAT = re.compile(
+    rf"(?<![一-鿿々〆ヵヶ])第{_NUM}(?:編|章|節|款|目)(?:の{_NUM})*(?:第{_NUM}(?:章|節|款|目)(?:の{_NUM})*)*"
+    rf"(?:（[^（）]*）)?(?=（)"
+)
+DIVISION_CHAIN_GAP_PAT = re.compile(rf"^{_PAREN2}(?:及び|並びに|又は|若しくは|、)$")
+
 # Locator right after a referential token (同条第二項第三号 / 同項第二号).
 REF_TAIL_PAT = re.compile(
     rf"(?:第(?P<para>{_NUM})項)?(?:第(?P<item>{_NUM})号(?P<item_eda>(?:の{_NUM})*))?"
@@ -222,6 +239,18 @@ class ExtRef:
         if self.item is None:
             return None
         return "-".join([str(self.item)] + [str(e) for e in self.item_eda])
+
+
+@dataclass
+class DivisionRef:
+    """Division (章 etc.) of another law right before a parenthesis. span[1] is the
+    position of that opening （; ``chained`` marks a bare 第N章 continuing the previous
+    division (law left to the caller)."""
+    law_name_raw: str
+    promulgation: str | None
+    span: tuple[int, int]
+    naked: bool = False
+    chained: bool = False
 
 
 @dataclass
@@ -387,6 +416,30 @@ def extract_external(text: str) -> tuple[list[ExtRef], list[tuple[int, int]]]:
     refs.sort(key=lambda r: r.span)
     spans.sort()
     return refs, spans
+
+
+def extract_divisions(text: str, mask_spans: list[tuple[int, int]] | None = None) -> list[DivisionRef]:
+    """Divisions of another law followed by a parenthesis (see DIVISION_PAT), and bare
+    divisions chained to them (「…を除く。）及び第三章（…）（」)."""
+    mask = mask_spans or []
+    out: list[DivisionRef] = []
+    for m in DIVISION_PAT.finditer(text):
+        if any(s <= m.start(1) < e for s, e in mask):
+            continue
+        law_name = _clean_law_name(m.group(1))
+        if not law_name or law_name in _REFERENTIAL_LAWNAME_TOKENS:
+            continue
+        naked = False
+        tail = _CLAUSE_TAIL_TOKEN.search(law_name)
+        if tail:
+            law_name, naked = tail.group("tok") or tail.group("bare"), True
+        out.append(DivisionRef(law_name, m.group(2), (m.end(1) - len(law_name), m.end()), naked))
+    for m in BARE_DIVISION_PAT.finditer(text):
+        prev = max((d for d in out if d.span[1] <= m.start()), key=lambda d: d.span[1], default=None)
+        if prev and DIVISION_CHAIN_GAP_PAT.match(text[prev.span[1]:m.start()]):
+            out.append(DivisionRef(prev.law_name_raw, prev.promulgation, (m.start(), m.end()), prev.naked, True))
+    out.sort(key=lambda d: d.span)
+    return out
 
 
 def _ext_ref(m: re.Match, law_name: str, prom: str | None) -> ExtRef | None:
