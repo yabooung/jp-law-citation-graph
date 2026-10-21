@@ -8,13 +8,13 @@ The monthly refresh runs this after it updates data/; tests run it with --check.
     python tools/render_docs.py --check  # exit 1 if a doc is out of date
 
 Keys come from data/release_stats.json, data/laws.csv, data/cites_law_to_law.csv,
-data/cites_edges.jsonl.gz, eval/v2/nta_retrieval_results.json and pyproject.toml (see `values`).
+eval/v2/nta_retrieval_results.json and pyproject.toml (see `values`); the .jsonl.gz edge files are
+on Hugging Face only and are not needed.
 """
 from __future__ import annotations
 
 import argparse
 import csv
-import gzip
 import json
 import re
 import sys
@@ -57,13 +57,6 @@ def values(root: Path = ROOT) -> dict[str, str]:
         laws = list(csv.DictReader(f))
     with (root / "data/cites_law_to_law.csv").open(encoding="utf-8") as f:
         cited_by = Counter(r["tgt_law"] for r in csv.DictReader(f))
-    links: set[tuple[str, str, str, str]] = set()
-    pre = 0
-    with gzip.open(root / "data/cites_edges.jsonl.gz", "rt", encoding="utf-8") as f:
-        for line in f:
-            e = json.loads(line)
-            links.add((e["src_law_id"], e["src_article"], e["tgt_law_id"], e["tgt_article"]))
-            pre += e.get("version") == "pre_amendment"
     version = re.search(r'^version = "([^"]+)"', (root / "pyproject.toml").read_text(encoding="utf-8"), re.M)[1]
 
     a = st["as_of"]
@@ -79,8 +72,8 @@ def values(root: Path = ROOT) -> dict[str, str]:
         "ext_cross": _n(st["external_cross_law_edges"]),
         "ext_self": _n(st["external_self_edges"]),
         "pairs": _n(st["law_to_law_pairs"]),
-        "article_links": _n(len(links)),
-        "pre_amendment_edges": _n(pre),
+        "article_links": _n(st["article_links"]),
+        "pre_amendment_edges": _n(st["pre_amendment_edges"]),
         "queries": _n(ret["evaluated"]),
         "gold_records": _n(ret["gold"]["records"]),
     }

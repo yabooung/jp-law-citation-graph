@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The two `.jsonl.gz` edge files are on Hugging Face only** (`jlawcite download --data DIR`, or the
+  dataset's `data/`, tagged per snapshot). Git stores a compressed file in full on every change, so
+  committing them monthly added ~28 MB to the history each time; the CSVs and `release_stats.json` stay
+  in the repo (they are stored as diffs, a few KB a month). `release_stats.json` gains `article_links`
+  and `pre_amendment_edges`, so the docs are rendered without the edge files.
 - **`/data` follows the monthly refresh.** After each real Hugging Face publish, the workflow commits
   the same build's `/data`, `eval/v2/nta_retrieval_results.json` and `explorer.html` to `main`, so the
   repo and the latest snapshot tag no longer drift apart (before, `/data` changed only on code releases).

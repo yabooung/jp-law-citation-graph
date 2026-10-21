@@ -6,6 +6,8 @@
   "external_cross_law_edges": 530444,
   "external_self_edges": 94955,
   "law_to_law_pairs": 70774,
+  "article_links": 456647,
+  "pre_amendment_edges": 13056,
   "edges_by_rel": {
     "CITES": 1422820,
     "DELEGATES_TO": 67763,

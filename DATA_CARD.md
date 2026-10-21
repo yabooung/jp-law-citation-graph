@@ -33,6 +33,8 @@ Node ids are stable and readable: `129AC0000000089_a709` (民法第七百九条)
 Article-less provisions sit under a synthetic article `0`.
 
 ## Released files (`/data`)
+All on Hugging Face (one tag per snapshot). The GitHub repo has all but the two `.jsonl.gz` edge files.
+
 | File | Rows | Notes |
 |---|---:|---|
 | `laws.csv` | <!--v:laws-->8,981<!--/v--> | v1 columns + `enforcement_date`, `next_enforcement_date`, `pending_versions` |

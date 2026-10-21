@@ -112,7 +112,8 @@ def main(argv: list[str] | None = None) -> int:
     # ---- edges ----
     law_of = lambda node_id: node_id.split("_", 1)[0]
     pair = Counter()
-    n_ext = n_ext_cross = 0
+    n_ext = n_ext_cross = n_pre = 0
+    links: set[tuple[str, str, str, str]] = set()   # distinct (src law, src article, tgt law, tgt article)
     via_count = Counter()
     rel_count = Counter()
     with _gz_text(a.out / "cites_edges.jsonl.gz") as fe, _gz_text(a.out / "cites_all_edges.jsonl.gz") as fa:
@@ -135,6 +136,8 @@ def main(argv: list[str] | None = None) -> int:
                 via = _via(xf)
                 via_count[via] += 1
                 n_ext += 1
+                n_pre += e.get("version") == "pre_amendment"
+                links.add((s_law, s_art, t_law, t_art))
                 if s_law != t_law:
                     n_ext_cross += 1
                     pair[(s_law, t_law)] += 1
@@ -180,6 +183,9 @@ def main(argv: list[str] | None = None) -> int:
         "external_cross_law_edges": n_ext_cross,
         "external_self_edges": n_ext - n_ext_cross,
         "law_to_law_pairs": len(pair),
+        # from cites_edges.jsonl.gz, kept here so the docs can be rendered without the edge files
+        "article_links": len(links),
+        "pre_amendment_edges": n_pre,
         "edges_by_rel": dict(rel_count),
         "external_by_via": dict(via_count.most_common()),
         "pending_versions": len(pending_rows),

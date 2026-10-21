@@ -69,9 +69,11 @@ jlawcite pending --until 20261231                    # 시행 예정 개정
 |---|---|
 | `laws.csv` | v1 열 + `enforcement_date, next_enforcement_date, pending_versions` |
 | `cites_law_to_law.csv` | 법령 → 법령 집계 (v1 열 그대로) |
-| `cites_edges.jsonl.gz` | 법령 이름으로 가리킨 인용 전체. v1 필드 + `src_node`, `tgt_node`, `fallback_level` |
-| `cites_all_edges.jsonl.gz` | 그래프의 모든 엣지 (같은 법령 안·前条/同項·위임·별표 참조·개정) |
+| `cites_edges.jsonl.gz` ¹ | 법령 이름으로 가리킨 인용 전체. v1 필드 + `src_node`, `tgt_node`, `fallback_level` |
+| `cites_all_edges.jsonl.gz` ¹ | 그래프의 모든 엣지 (같은 법령 안·前条/同項·위임·별표 참조·개정) |
 | `pending_versions.csv` | 시행 예정 개정 (시행일·施行日備考·개정법령·e-Gov URL) |
+
+¹ [Hugging Face](https://huggingface.co/datasets/yabooung/jp-law-citation-graph)에만 있습니다(`jlawcite download --data DIR`, 또는 데이터셋의 `data/`. 스냅샷마다 태그). git은 파일의 모든 버전을 보관하고 압축 파일은 바뀐 부분만 저장할 수 없어서, 합쳐 약 28MB인 이 두 파일은 매달 커밋하지 않습니다.
 
 전체 노드 파일(189만 개, 본문 포함)은 GitHub Release에 첨부되어 있고, 빠른 시작 명령으로 다시 만들 수도 있습니다.
 

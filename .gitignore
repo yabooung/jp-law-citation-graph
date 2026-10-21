@@ -8,6 +8,8 @@ _prev_v1/
 data/raw/
 data/parsed/
 data/search/
+# edge files: on Hugging Face only (a new ~28 MB blob per monthly commit otherwise)
+data/*.jsonl.gz
 *.egg-info/
 .pytest_cache/
 

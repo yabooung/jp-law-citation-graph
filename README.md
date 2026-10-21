@@ -94,10 +94,12 @@ Every command takes `--json`. The same functions are available in Python (`jlawc
 |---|---|
 | `laws.csv` | `law_id, name, type, url` (v1) + `enforcement_date, next_enforcement_date, pending_versions` |
 | `cites_law_to_law.csv` | aggregated `src_law → tgt_law` counts (v1 columns) |
-| `cites_edges.jsonl.gz` | every resolved citation of a named law: v1 fields (`src_article`, `tgt_article`, `via`, `confidence`) + `src_node`, `tgt_node`, `fallback_level` |
-| `cites_all_edges.jsonl.gz` | **every** edge of the graph: CITES (incl. same-law and 前条/同項), DELEGATES_TO, REFERS_TO_ATTACHMENT, AMENDS, each with `extracted_from` |
+| `cites_edges.jsonl.gz` ¹ | every resolved citation of a named law: v1 fields (`src_article`, `tgt_article`, `via`, `confidence`) + `src_node`, `tgt_node`, `fallback_level` |
+| `cites_all_edges.jsonl.gz` ¹ | **every** edge of the graph: CITES (incl. same-law and 前条/同項), DELEGATES_TO, REFERS_TO_ATTACHMENT, AMENDS, each with `extracted_from` |
 | `pending_versions.csv` | upcoming amendments: 施行日, 施行日備考, amending law, e-Gov URL |
 | `release_stats.json` | the counts quoted here |
+
+¹ On [Hugging Face](https://huggingface.co/datasets/yabooung/jp-law-citation-graph) only (`jlawcite download --data DIR`, or the dataset's `data/`, one tag per snapshot). Git keeps every version of a file and cannot store a compressed file as a diff, so these two (~28 MB together) are not committed each month.
 
 The full node file (1.89M nodes, article and paragraph text included) is attached to the GitHub
 release, or you can rebuild it with the Quick start commands.

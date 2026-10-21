@@ -69,9 +69,11 @@ jlawcite pending --until 20261231                    # 施行予定の改正
 |---|---|
 | `laws.csv` | v1 の列＋ `enforcement_date, next_enforcement_date, pending_versions` |
 | `cites_law_to_law.csv` | 法令→法令の集計（v1 の列） |
-| `cites_edges.jsonl.gz` | 法令名で示された引用すべて。v1 の項目＋ `src_node`, `tgt_node`, `fallback_level` |
-| `cites_all_edges.jsonl.gz` | グラフの全エッジ（同一法令内・前条/同項・委任・別表参照・改正） |
+| `cites_edges.jsonl.gz` ¹ | 法令名で示された引用すべて。v1 の項目＋ `src_node`, `tgt_node`, `fallback_level` |
+| `cites_all_edges.jsonl.gz` ¹ | グラフの全エッジ（同一法令内・前条/同項・委任・別表参照・改正） |
 | `pending_versions.csv` | 施行予定の改正（施行日・施行日備考・改正法令・e-Gov URL） |
+
+¹ [Hugging Face](https://huggingface.co/datasets/yabooung/jp-law-citation-graph) のみ（`jlawcite download --data DIR`、またはデータセットの `data/`。スナップショットごとにタグ）。git はファイルの全版を保存し、圧縮ファイルは差分で持てないため、この 2 つ（合わせて約 28MB）は毎月はコミットしません。
 
 全ノード（189万、本文付き）は GitHub Release に添付するか、クイックスタートで再生成できます。
 
