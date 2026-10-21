@@ -3,7 +3,9 @@
     python tools/publish_hf.py --release work/release --db work/jp_search.sqlite \
         --snapshot-json work/raw/_snapshot.json --as-of 20261029
 
-Uploads (added or replaced; other files such as README.md are left alone):
+Uploads (added or replaced; other files are left alone):
+    README.md                        dataset card: tools/hf_card_header.md + DATA_CARD.md as rendered
+                                     in the working tree (run tools/render_docs.py on the new data first)
     data/…                           release data files from `jlawcite export`
     eval/nta_gold.jsonl              NTA benchmark gold (--gold, default eval/v2/nta_gold.jsonl);
                                      the `nta_retrieval` config of the dataset card points here
@@ -14,7 +16,9 @@ Uploads (added or replaced; other files such as README.md are left alone):
                                      jlawcite version, git rev
 then removes the older unpacked jp_search.sqlite.gz from main and creates the tag YYYY-MM-DD.
 Exits 0 without uploading if that tag already exists (e-Gov has not changed since the last
-run), unless --force (republish and move the tag). Needs $HF_TOKEN (or a cached `hf auth login`).
+run), unless --force (republish and move the tag). With --published-flag FILE, writes the tag to
+FILE only when it uploaded, so the next workflow step can tell a new publish from a no-op.
+Needs $HF_TOKEN (or a cached `hf auth login`).
 """
 from __future__ import annotations
 
@@ -33,6 +37,7 @@ from huggingface_hub import HfApi
 
 import jlawcite
 from jlawcite.search import pack
+from render_docs import hf_card   # tools/ is on sys.path when this file is run as a script
 
 REPO = os.environ.get("JLAWCITE_HF_REPO", "yabooung/jp-law-citation-graph")
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,6 +56,7 @@ def main() -> int:
     ap.add_argument("--gold", type=Path, default=ROOT / "eval/v2/nta_gold.jsonl", help="NTA benchmark gold")
     ap.add_argument("--dry-run", action="store_true", help="stage files but do not upload")
     ap.add_argument("--force", action="store_true", help="republish and move the tag if it exists")
+    ap.add_argument("--published-flag", type=Path, help="write the tag here after a real upload")
     a = ap.parse_args()
 
     tag = snapshot_date(a.snapshot_json)
@@ -65,6 +71,7 @@ def main() -> int:
         shutil.copytree(a.release / "data", stage / "data")
         (stage / "eval").mkdir()
         shutil.copy2(a.gold, stage / "eval" / "nta_gold.jsonl")
+        (stage / "README.md").write_text(hf_card(ROOT), encoding="utf-8")
         results = a.release / "nta_retrieval_results.json"
         if results.exists():
             shutil.copy2(results, stage / "eval" / results.name)
@@ -105,6 +112,8 @@ def main() -> int:
         if exists:
             api.delete_tag(REPO, tag=tag, repo_type="dataset")
         api.create_tag(REPO, tag=tag, repo_type="dataset")
+        if a.published_flag:
+            a.published_flag.write_text(tag, encoding="utf-8")
         print(f"[publish] {REPO} @ {tag}", file=sys.stderr)
         return 0
     finally:

@@ -3,7 +3,7 @@
 The refresh builds, validates and benchmarks a new snapshot unattended, then publishes it. `validate`
 catches broken files; it does not catch a parser change or an e-Gov format change that silently drops
 citations or hurts retrieval while every step still exits 0. This compares the new snapshot with the
-release committed in the repo and exits 1 if anything fell past a threshold, so the publish step is
+release committed in the repo (the previous published snapshot: the refresh commits each one) and exits 1 if anything fell past a threshold, so the publish step is
 skipped and the run goes red.
 
     python tools/regression_gate.py \

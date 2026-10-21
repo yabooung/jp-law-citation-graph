@@ -62,16 +62,16 @@ Deterministic: no LLM, no randomness. Same snapshot + same as-of date + same cod
 
 ### Resolution rates
 The numerators and denominators are in `jp_cites_stats.json`. Excluded from the denominators:
-- 旧法 / 改正前 references: 25,345
-- 改正法 references: 44,184
-- citations inside amending-law 附則: 295,023
-- self and modifier tokens (本条, 各号): 123,160
+- 旧法 / 改正前 references: <!--v:excl.pre_amendment-->25,345<!--/v-->
+- 改正法 references: <!--v:excl.amending_law-->44,184<!--/v-->
+- citations inside amending-law 附則: <!--v:excl.amend_suppl-->294,990<!--/v-->
+- self and modifier tokens (本条, 各号): <!--v:excl.self-->123,160<!--/v-->
 
 | | rate |
 |---|---:|
-| same-law | 92.9% |
-| cross-law | 82.2% |
-| relative | 92.2% |
+| same-law | <!--v:res.internal-->93.0%<!--/v--> |
+| cross-law | <!--v:res.external-->82.2%<!--/v--> |
+| relative | <!--v:res.referential-->92.2%<!--/v--> |
 
 ### Precision (preliminary)
 Edges were drawn at random per resolution rule and checked against the source text and the target
@@ -95,7 +95,7 @@ re-sampled.
 | `EXTERNAL_FULL_PAT/prefix_stripped` | 17,713 | 20/20 ¹ | 100% (84–100) |
 | `INTERNAL_PAT/amend_suppl` | 106,323 | 4/10 | 40% (17–69) — excluded from KPIs, confidence 0.4 |
 
-¹ Right law in all 20; 3 (canonical) and 5 (prefix_stripped) cite the pre-amendment text (「旧○○法」「改正前の○○法」). Those 16,311 edges carry `version: "pre_amendment"` and confidence 0.7 because only the current version is in the graph.
+¹ Right law in all 20; 3 (canonical) and 5 (prefix_stripped) cite the pre-amendment text (「旧○○法」「改正前の○○法」). Those <!--v:pre_amendment_edges-->13,034<!--/v--> edges carry `version: "pre_amendment"` and confidence 0.7 because only the current version is in the graph.
 
 Weighted by edge count, the sampled rules (86% of CITES) come to about 98%. With 10–20 edges per
 rule, one rule's interval is wide: 10/10 still bounds the rate only above 72%. The error classes

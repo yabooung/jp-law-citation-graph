@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import csv
 import gzip
+import io
 import json
 import sys
 from collections import Counter, defaultdict
@@ -39,6 +40,12 @@ def _jsonl(path: Path):
         for line in f:
             if line.strip():
                 yield json.loads(line)
+
+
+def _gz_text(path: Path):
+    """gzip text writer with a fixed header time and LF line ends, so the same input gives the
+    same bytes on any machine (the monthly refresh commits only real changes)."""
+    return io.TextIOWrapper(gzip.GzipFile(path, "wb", compresslevel=9, mtime=0), encoding="utf-8", newline="\n")
 
 
 def _via(extracted_from: str) -> str:
@@ -108,8 +115,7 @@ def main(argv: list[str] | None = None) -> int:
     n_ext = n_ext_cross = 0
     via_count = Counter()
     rel_count = Counter()
-    with gzip.open(a.out / "cites_edges.jsonl.gz", "wt", encoding="utf-8", compresslevel=9) as fe, \
-         gzip.open(a.out / "cites_all_edges.jsonl.gz", "wt", encoding="utf-8", compresslevel=9) as fa:
+    with _gz_text(a.out / "cites_edges.jsonl.gz") as fe, _gz_text(a.out / "cites_all_edges.jsonl.gz") as fa:
         for fname in ("jp_cites_edges.jsonl", "jp_delegates_edges.jsonl",
                       "jp_attaches_edges.jsonl", "jp_amends_edges.jsonl"):
             fp = a.parsed / fname
@@ -159,6 +165,12 @@ def main(argv: list[str] | None = None) -> int:
 
     cited_by = Counter(t for (_, t) in pair)
     parse_stats = json.loads((a.parsed / "jp_parse_stats.json").read_text(encoding="utf-8"))
+    cs_path = a.parsed / "jp_cites_stats.json"
+    cs = json.loads(cs_path.read_text(encoding="utf-8")) if cs_path.exists() else {}
+    totals = parse_stats.get("totals", {})
+    int_k = cs.get("internal_resolved_exact", 0) + cs.get("internal_resolved_paragraph_to_article", 0)
+    ext_k = cs.get("external_resolved_exact", 0) + cs.get("external_resolved_paragraph_to_article", 0)
+    ref_k = cs.get("referential_resolved", 0)
     snap = json.loads(a.snapshot.read_text(encoding="utf-8")) if a.snapshot.exists() else {}
     stats = {
         "egov_snapshot": (snap.get("zip_csv_timestamp") or "")[:10],
@@ -171,10 +183,26 @@ def main(argv: list[str] | None = None) -> int:
         "edges_by_rel": dict(rel_count),
         "external_by_via": dict(via_count.most_common()),
         "pending_versions": len(pending_rows),
+        "egov_law_versions": len(types),
+        # node counts by type (jp_parse_stats totals); CONTAINS is a tree, so its edges = nodes − laws
+        "nodes": {k: totals[k] for k in ("laws", "hierarchy", "articles", "paragraphs", "items",
+                                         "suppl_articles", "suppl_paragraphs", "attachments") if k in totals},
+        # resolved / extracted, targets outside the corpus excluded (same formulas as validate V07)
+        "resolution": {
+            "internal": [int_k, int_k + cs.get("internal_unresolved", 0)],
+            "external": [ext_k, ext_k + cs.get("external_unresolved_law", 0) + cs.get("external_unresolved_target", 0)],
+            "referential": [ref_k, ref_k + cs.get("referential_unresolved", 0)],
+        },
+        "resolution_excluded": {
+            "pre_amendment": cs.get("external_pre_amendment", 0),
+            "amending_law": cs.get("external_amending_law", 0),
+            "amend_suppl": cs.get("internal_amend_suppl_resolved", 0) + cs.get("internal_amend_suppl_unresolved", 0),
+            "self": cs.get("referential_self", 0),
+        },
         "top_cited_laws": [(laws[t]["title"], c) for t, c in cited_by.most_common(10)],
     }
     (a.out / "release_stats.json").write_text(
-        json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+        json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     print(json.dumps(stats, ensure_ascii=False, indent=2))
     return 0
 

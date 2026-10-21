@@ -2,7 +2,10 @@ name: monthly refresh
 
 # Rebuild the graph and search DB from the latest e-Gov bulk download and publish them to the
 # Hugging Face dataset, tagged with the e-Gov snapshot date. Skips publishing when that tag
-# already exists. The /data files in this git repo are only updated on code releases.
+# already exists. After a real publish, data/, the benchmark results, explorer.html and the numbers
+# in the docs (tools/render_docs.py) are updated from the same build and committed to main, so the
+# repo, its docs and the latest Hugging Face tag always describe one snapshot. The regression gate
+# therefore compares each month with the previous published one.
 
 on:
   schedule:
@@ -19,6 +22,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write   # commit the refreshed data/ and docs
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -31,7 +37,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e . huggingface_hub
+      - run: pip install -e . huggingface_hub pytest
       - name: fetch e-Gov
         run: jlawcite fetch --output work/raw --no-backup
       - name: build graph
@@ -51,7 +57,7 @@ jobs:
         run: jlawcite index --data work/parsed --csv work/all_law_list.csv
       - name: retrieval benchmark
         run: jlawcite eval --db "$JLAWCITE_DB" --gold eval/v2/nta_gold.jsonl --out work/release/nta_retrieval_results.json
-      - name: regression gate (vs the release committed in this repo)
+      - name: regression gate (vs the previous snapshot committed in this repo)
         # Fails the run before publishing if retrieval or graph counts dropped past a threshold.
         # Table goes to the job summary. Override once with workflow_dispatch skip_gate=true.
         continue-on-error: ${{ inputs.skip_gate == true }}
@@ -59,8 +65,25 @@ jobs:
           python tools/regression_gate.py \
             --new-results work/release/nta_retrieval_results.json --base-results eval/v2/nta_retrieval_results.json \
             --new-stats work/release/data/release_stats.json --base-stats data/release_stats.json
+      - name: put the new build into data/ and the docs (working tree; committed only after a publish)
+        run: |
+          cp work/release/data/* data/
+          cp work/release/nta_retrieval_results.json eval/v2/nta_retrieval_results.json
+          python tools/build_explorer.py
+          python tools/render_docs.py
+          python -m pytest -q tests/test_render_docs.py
       - name: publish to Hugging Face
+        # the dataset card is built from the DATA_CARD.md rendered in the previous step
         run: |
           python tools/publish_hf.py --release work/release --db "$JLAWCITE_DB" \
-            --snapshot-json work/_snapshot.json --as-of "$AS_OF" \
+            --snapshot-json work/_snapshot.json --as-of "$AS_OF" --published-flag work/published \
             ${{ inputs.force && '--force' || '' }}
+      - name: commit data/ and docs (only after a real publish)
+        run: |
+          if [ ! -f work/published ]; then echo "nothing published; repo unchanged"; exit 0; fi
+          git add data eval/v2/nta_retrieval_results.json explorer.html README.md README.ja.md README.ko.md \
+            DATA_CARD.md DATA_LICENSE.md docs/METHODOLOGY.md CITATION.cff tools/hf_card_header.md
+          if git diff --cached --quiet; then echo "no change"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Data: e-Gov snapshot $(cat work/published) (monthly refresh, jlawcite $(python -c 'import jlawcite; print(jlawcite.__version__)'))"
+          git push origin HEAD:main

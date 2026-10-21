@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **`/data` follows the monthly refresh.** After each real Hugging Face publish, the workflow commits
+  the same build's `/data`, `eval/v2/nta_retrieval_results.json` and `explorer.html` to `main`, so the
+  repo and the latest snapshot tag no longer drift apart (before, `/data` changed only on code releases).
+  The regression gate therefore compares each month with the previous published one.
+- **Doc numbers are generated.** `tools/render_docs.py` fills every count, rate and date in the READMEs,
+  DATA_CARD, DATA_LICENSE, METHODOLOGY and CITATION.cff from `/data` and the benchmark results
+  (`<!--v:KEY-->` markers); `tests/test_render_docs.py` fails when a doc is out of date. This corrected
+  numbers left over from v3.2: same-law resolution 92.9% → 93.0% (301,863 / 324,412), the cross-law and
+  relative-reference counts, citations inside amending-law 附則 295,023 → 294,990, and the
+  `pre_amendment` edge count 16,311 → 13,034 (the edges in `/data` that carry `version: "pre_amendment"`;
+  16,311 was a pipeline counter). Also the release badge and BibTeX version (2.3.0 → 2.5.0).
+- `release_stats.json` adds `nodes` (by type), `resolution` (resolved / extracted), `resolution_excluded`
+  and `egov_law_versions`. gzip files are written with a fixed header time, so the same build gives the
+  same bytes.
+
 ## v2.5.0 — 2026-10-20
 
 - **Extraction fix: articles in parentheses after another law's 編・章・節・款・目.** In

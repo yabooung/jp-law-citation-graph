@@ -2,13 +2,13 @@
 
 **English** · [日本語](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ja.md) · [한국어](https://github.com/yabooung/jp-law-citation-graph/blob/main/README.ko.md)
 
-![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.3.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/yabooung/jp-law-citation-graph)
+![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue) ![data: CC BY 4.0](https://img.shields.io/badge/data-CC--BY--4.0-green) ![deterministic](https://img.shields.io/badge/pipeline-deterministic%20·%20no%20LLM-brightgreen) ![version](https://img.shields.io/badge/release-v2.5.0-informative) [![PyPI](https://img.shields.io/pypi/v/jlawcite)](https://pypi.org/project/jlawcite/) [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-dataset-yellow)](https://huggingface.co/datasets/yabooung/jp-law-citation-graph)
 
 **An open, deterministic citation graph and search index for Japanese statutory law.**
 
 Every Japanese law in force is parsed from official [e-Gov](https://laws.e-gov.go.jp/) XML down
 to article (条), paragraph (項) and item (号), and citations in the text are resolved to the provision
-they point at: 92.9% of same-law and 82.2% of cross-law citations, with the unresolved ones listed.
+they point at: <!--v:res.internal-->93.0%<!--/v--> of same-law and <!--v:res.external-->82.2%<!--/v--> of cross-law citations, with the unresolved ones listed.
 The result ships as data files, a single-file explorer, a `jlawcite` command-line tool
 that looks up and searches provisions without embeddings, and an MCP server for LLMs.
 
@@ -16,16 +16,16 @@ that looks up and searches provisions without embeddings, and an MCP server for 
 
 <sub>[`explorer.html`](https://github.com/yabooung/jp-law-citation-graph/blob/main/explorer.html): pick a law and see what it cites (green) and what cites it (yellow).</sub>
 
-## At a glance (v2.5, e-Gov snapshot 2026-09-27)
+## At a glance (v2.5, e-Gov snapshot <!--v:snapshot-->2026-09-27<!--/v-->)
 
 | | |
 |---|---|
-| **Laws** | 8,998, each at the version in force on 2026-09-29, plus **1,649 upcoming amendments** (施行日 + amending law) |
-| **Graph** | 1.89M nodes (条・項・号・附則・別表) · 1.42M citation edges · 67,666 delegation edges (政令で定める) · 37,377 別表/様式 references |
-| **Law → law network** | 70,600 distinct pairs · 454,308 distinct article-level links between laws |
-| **Citation resolution** | same-law 92.9% · cross-law 82.2% · relative refs (前条/同項/…) 92.2% |
+| **Laws** | <!--v:laws-->8,998<!--/v-->, each at the version in force on <!--v:as_of-->2026-09-29<!--/v-->, plus **<!--v:pending-->1,649<!--/v--> upcoming amendments** (施行日 + amending law) |
+| **Graph** | <!--v:nodes_m-->1.89M<!--/v--> nodes (条・項・号・附則・別表) · <!--v:cites_m-->1.42M<!--/v--> citation edges · <!--v:delegates-->67,666<!--/v--> delegation edges (政令で定める) · <!--v:attachment_refs-->37,377<!--/v--> 別表/様式 references |
+| **Law → law network** | <!--v:pairs-->70,600<!--/v--> distinct pairs · <!--v:article_links-->454,308<!--/v--> distinct article-level links between laws |
+| **Citation resolution** | same-law <!--v:res.internal-->93.0%<!--/v--> · cross-law <!--v:res.external-->82.2%<!--/v--> · relative refs (前条/同項/…) <!--v:res.referential-->92.2%<!--/v--> |
 | **Precision** | ≈98% on hand-checked samples of the rules covering 86% of edges (preliminary, see below) |
-| **Search** | `jlawcite get 民法第七百九条` · BM25 search · on 1,186 real tax questions the citation graph lifts Recall@10 from 0.31 to 0.51 |
+| **Search** | `jlawcite get 民法第七百九条` · BM25 search · on <!--v:queries-->1,186<!--/v--> real tax questions the citation graph lifts Recall@10 from <!--v:ret.bm25.r10-->0.31<!--/v--> to <!--v:ret.bm25+graph.r10-->0.51<!--/v--> |
 | **Method** | 100% deterministic (rules + dictionaries + document context), no LLM, reproducible from the public e-Gov bulk download |
 | **Updates** | Rebuilt monthly from e-Gov; each snapshot is tagged on Hugging Face (`jlawcite download --list`, `--snapshot YYYY-MM-DD` to pin one) |
 
@@ -35,8 +35,8 @@ that looks up and searches provisions without embeddings, and an MCP server for 
 |---|---|---|
 | Unit | law → law (article strings) | article / paragraph / item nodes, incl. 附則 and attachments |
 | Edges | cross-law citations | + same-law citations, 前条/同項/前号, delegation, 別表 references |
-| Distinct article-level cross-law links | 173,844 | **454,308** |
-| Law → law pairs | 55,651 | **70,600** |
+| Distinct article-level cross-law links | 173,844 | **<!--v:article_links-->454,308<!--/v-->** |
+| Law → law pairs | 55,651 | **<!--v:pairs-->70,600<!--/v-->** |
 | Versions | latest file per law | version in force on a date + upcoming amendments |
 | Search | – | `jlawcite` CLI (lookup, BM25, graph walk) + retrieval benchmark |
 | Precision | 0 errors / 400 (LLM-proposed labels) | per-rule samples with confidence intervals; 5 error classes found and fixed |
@@ -48,8 +48,8 @@ each (source, target) link once. Full list in [CHANGELOG.md](https://github.com/
 | You are… | You use it to… |
 |---|---|
 | a **legal-NLP researcher** | add citation neighbours to statute retrieval / RAG (the benchmark below shows the gain), or reuse the deterministic resolver on your own corpus |
-| a **legal-tech developer** | answer "what cites X?" (amending 個人情報保護法 touches **111** laws) and "what changes when?" (`pending_versions.csv`) |
-| a **network / comparative-law researcher** | study hubs (地方自治法 is cited by 1,250 laws), delegation chains and dependency clusters |
+| a **legal-tech developer** | answer "what cites X?" (amending 個人情報保護法 touches **<!--v:cited_by:個人情報の保護に関する法律-->111<!--/v-->** laws) and "what changes when?" (`pending_versions.csv`) |
+| a **network / comparative-law researcher** | study hubs (地方自治法 is cited by <!--v:cited_by:地方自治法-->1,250<!--/v--> laws), delegation chains and dependency clusters |
 | building an **LLM legal assistant** | ground citations deterministically via the MCP server: `会社法第737条` → the exact article text |
 
 ## Quick start
@@ -118,16 +118,16 @@ Tools: `resolve_citation`, `what_cites`, `what_law_cites`, `citation_path`, `get
 See [`mcp/README.md`](https://github.com/yabooung/jp-law-citation-graph/blob/main/mcp/README.md).
 
 ## Retrieval benchmark
-Each of 1,186 National Tax Agency Q&A cases (質疑応答事例) is a real tax question whose answer cites
+Each of <!--v:queries-->1,186<!--/v--> National Tax Agency Q&A cases (質疑応答事例) is a real tax question whose answer cites
 specific articles. The question is the query, and hits are counted at the article level
 (`jlawcite eval`).
 
 | method | R@1 | R@5 | R@10 | R@20 | R@50 | MRR@50 | s/query |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| BM25 (character-trigram OR) | 0.104 | 0.234 | 0.305 | 0.388 | 0.498 | 0.171 | 0.13 |
-| BM25 + 1-hop citation graph | **0.289** | **0.442** | **0.506** | **0.551** | **0.601** | **0.359** | 0.13 |
+| BM25 (character-trigram OR) | <!--v:ret.bm25.recall@1-->0.104<!--/v--> | <!--v:ret.bm25.recall@5-->0.234<!--/v--> | <!--v:ret.bm25.recall@10-->0.305<!--/v--> | <!--v:ret.bm25.recall@20-->0.388<!--/v--> | <!--v:ret.bm25.recall@50-->0.498<!--/v--> | <!--v:ret.bm25.mrr@50-->0.171<!--/v--> | <!--v:ret.bm25.s-->0.11<!--/v--> |
+| BM25 + 1-hop citation graph | **<!--v:ret.bm25+graph.recall@1-->0.289<!--/v-->** | **<!--v:ret.bm25+graph.recall@5-->0.442<!--/v-->** | **<!--v:ret.bm25+graph.recall@10-->0.506<!--/v-->** | **<!--v:ret.bm25+graph.recall@20-->0.551<!--/v-->** | **<!--v:ret.bm25+graph.recall@50-->0.601<!--/v-->** | **<!--v:ret.bm25+graph.mrr@50-->0.359<!--/v-->** | <!--v:ret.bm25+graph.s-->0.11<!--/v--> |
 
-<sub>1,186 queries (NTA collected 2026-09-29) · e-Gov snapshot 2026-09-27 · `eval/v2/nta_retrieval_results.json`</sub>
+<sub><!--v:queries-->1,186<!--/v--> queries (NTA collected 2026-09-29) · e-Gov snapshot <!--v:snapshot-->2026-09-27<!--/v--> · `eval/v2/nta_retrieval_results.json`</sub>
 
 The one-hop expansion adds the articles that the top hits cite. A retrieved 施行令 paragraph pulls
 up the parent-act article it implements. Both rows use no embeddings; they are a baseline for dense
@@ -190,7 +190,7 @@ See [DATA_LICENSE.md](https://github.com/yabooung/jp-law-citation-graph/blob/mai
 ```bibtex
 @misc{jlaw_citegraph_2026,
   title   = {JLaw-CiteGraph: An open citation graph of Japanese statutory law},
-  version = {2.3.0},
+  version = {2.5.0},
   year    = {2026},
   note    = {e-Gov 2026-09-27 snapshot},
   url     = {https://github.com/yabooung/jp-law-citation-graph}

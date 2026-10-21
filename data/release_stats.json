@@ -27,6 +27,37 @@
     "division_carry": 284
   },
   "pending_versions": 1649,
+  "egov_law_versions": 10648,
+  "nodes": {
+    "laws": 8998,
+    "hierarchy": 26664,
+    "articles": 243277,
+    "paragraphs": 504241,
+    "items": 515834,
+    "suppl_articles": 240053,
+    "suppl_paragraphs": 326379,
+    "attachments": 21550
+  },
+  "resolution": {
+    "internal": [
+      301863,
+      324412
+    ],
+    "external": [
+      670243,
+      815281
+    ],
+    "referential": [
+      486940,
+      527858
+    ]
+  },
+  "resolution_excluded": {
+    "pre_amendment": 25345,
+    "amending_law": 44184,
+    "amend_suppl": 294990,
+    "self": 123160
+  },
   "top_cited_laws": [
     [
       "地方自治法",
