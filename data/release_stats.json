@@ -1,67 +1,67 @@
 {
-  "egov_snapshot": "2026-09-27",
-  "as_of": "20260929",
-  "laws": 8998,
-  "external_edges": 622586,
-  "external_cross_law_edges": 527879,
-  "external_self_edges": 94707,
-  "law_to_law_pairs": 70600,
+  "egov_snapshot": "2026-10-20",
+  "as_of": "20261021",
+  "laws": 8981,
+  "external_edges": 625399,
+  "external_cross_law_edges": 530444,
+  "external_self_edges": 94955,
+  "law_to_law_pairs": 70774,
   "edges_by_rel": {
-    "CITES": 1418223,
-    "DELEGATES_TO": 67666,
-    "REFERS_TO_ATTACHMENT": 37377,
-    "AMENDS": 117
+    "CITES": 1422820,
+    "DELEGATES_TO": 67763,
+    "REFERS_TO_ATTACHMENT": 37506,
+    "AMENDS": 118
   },
   "external_by_via": {
-    "defined_abbrev": 246433,
-    "canonical": 140552,
-    "enum_carryover": 90526,
-    "same_as_last": 61144,
-    "promulgation": 55857,
-    "prefix_stripped": 17713,
-    "anaphora_family": 4865,
-    "alias": 2669,
+    "defined_abbrev": 246691,
+    "canonical": 140937,
+    "enum_carryover": 91737,
+    "same_as_last": 61725,
+    "promulgation": 56002,
+    "prefix_stripped": 17776,
+    "anaphora_family": 4978,
+    "alias": 2672,
     "amended_self": 1319,
     "suffix": 695,
-    "old_name": 529,
-    "division_carry": 284
+    "old_name": 582,
+    "division_carry": 285
   },
-  "pending_versions": 1649,
-  "egov_law_versions": 10648,
+  "pending_versions": 1486,
+  "egov_law_versions": 10468,
   "nodes": {
-    "laws": 8998,
-    "hierarchy": 26664,
-    "articles": 243277,
-    "paragraphs": 504241,
-    "items": 515834,
-    "suppl_articles": 240053,
-    "suppl_paragraphs": 326379,
-    "attachments": 21550
+    "laws": 8981,
+    "hierarchy": 26685,
+    "articles": 243501,
+    "paragraphs": 504821,
+    "items": 516595,
+    "suppl_articles": 240682,
+    "suppl_paragraphs": 327257,
+    "attachments": 21590
   },
   "resolution": {
     "internal": [
-      301863,
-      324412
+      302257,
+      324813
     ],
     "external": [
-      670243,
-      815281
+      673188,
+      818710
     ],
     "referential": [
-      486940,
-      527858
+      488210,
+      529367
     ]
   },
   "resolution_excluded": {
-    "pre_amendment": 25345,
-    "amending_law": 44184,
-    "amend_suppl": 294990,
-    "self": 123160
+    "pre_amendment": 25347,
+    "amending_law": 44452,
+    "amend_suppl": 295901,
+    "self": 123428
   },
   "top_cited_laws": [
     [
       "地方自治法",
-      1250
+      1251
     ],
     [
       "会社法",
@@ -69,11 +69,11 @@
     ],
     [
       "独立行政法人通則法",
-      560
+      562
     ],
     [
       "児童福祉法",
-      524
+      529
     ],
     [
       "行政手続法",
@@ -93,11 +93,11 @@
     ],
     [
       "学校教育法",
-      392
+      393
     ],
     [
       "行政手続における特定の個人を識別するための番号の利用等に関する法律",
-      390
+      391
     ]
   ]
 }

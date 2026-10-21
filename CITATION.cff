@@ -9,10 +9,10 @@ authors:
     email: "horusr8@gmail.com"
 abstract: >-
   An open, reproducible citation graph and search index of Japanese national statutory
-  law, built deterministically from official e-Gov law XML: 8,998 laws at article /
-  paragraph / item level (1.89M nodes, 1.42M resolved citation edges; 70,600 distinct
+  law, built deterministically from official e-Gov law XML: 8,981 laws at article /
+  paragraph / item level (1.89M nodes, 1.42M resolved citation edges; 70,774 distinct
   law-to-law pairs), upcoming-amendment metadata, an embedding-free search CLI, and a
-  retrieval benchmark on NTA tax Q&A. Snapshot: e-Gov 2026-09-27.
+  retrieval benchmark on NTA tax Q&A. Snapshot: e-Gov 2026-10-20.
 keywords:
   - Japanese law
   - legal NLP

@@ -2,8 +2,8 @@
 
 ## Source
 - **e-Gov 法令検索** (https://laws.e-gov.go.jp/), official Japanese government law database (Digital Agency).
-  Bulk download `all_xml.zip`, law list timestamp **<!--v:snapshot-->2026-09-27<!--/v-->**.
-- **As-of date <!--v:as_of-->2026-09-29<!--/v-->.** Each law is taken at the version in force on that date. Versions with a
+  Bulk download `all_xml.zip`, law list timestamp **<!--v:snapshot-->2026-10-20<!--/v-->**.
+- **As-of date <!--v:as_of-->2026-10-21<!--/v-->.** Each law is taken at the version in force on that date. Versions with a
   later 施行日 are listed in `pending_versions.csv`.
 - Japanese statutes are not subject to copyright (Copyright Act Art. 13). e-Gov law data is provided
   for reuse with source attribution.
@@ -11,8 +11,8 @@
   edited; attribution required).
 
 ## Scope
-- **Included:** national statutes in force: 法律 <!--v:type:法律-->2,101<!--/v--> · 政令 <!--v:type:政令-->2,324<!--/v--> · 府省令 <!--v:type:府省令-->4,099<!--/v--> · 規則 <!--v:type:規則-->407<!--/v--> ·
-  勅令 <!--v:type:勅令-->66<!--/v--> · 憲法 <!--v:type:憲法-->1<!--/v--> = **<!--v:laws-->8,998<!--/v--> laws** (from <!--v:law_versions-->10,648<!--/v--> e-Gov law versions).
+- **Included:** national statutes in force: 法律 <!--v:type:法律-->2,100<!--/v--> · 政令 <!--v:type:政令-->2,310<!--/v--> · 府省令 <!--v:type:府省令-->4,095<!--/v--> · 規則 <!--v:type:規則-->409<!--/v--> ·
+  勅令 <!--v:type:勅令-->66<!--/v--> · 憲法 <!--v:type:憲法-->1<!--/v--> = **<!--v:laws-->8,981<!--/v--> laws** (from <!--v:law_versions-->10,468<!--/v--> e-Gov law versions).
 - **Excluded:** local ordinances (条例), case law (判例), 通達, the text of repealed laws and of
   amending acts (一部改正法), and treaties as nodes. Citations *to* these exist in the text but have
   no target node.
@@ -20,13 +20,13 @@
 ## Graph (full build)
 | Nodes | count | | Edges | count |
 |---|---:|---|---|---:|
-| Law | <!--v:nodes.laws-->8,998<!--/v--> | | CONTAINS (tree) | <!--v:contains-->1,877,998<!--/v--> |
-| Hierarchy (編章節款目) | <!--v:nodes.hierarchy-->26,664<!--/v--> | | CITES | <!--v:cites-->1,418,223<!--/v--> |
-| Article | <!--v:nodes.articles-->243,277<!--/v--> | | DELEGATES_TO (政令で定める → law) | <!--v:delegates-->67,666<!--/v--> |
-| Paragraph | <!--v:nodes.paragraphs-->504,241<!--/v--> | | REFERS_TO_ATTACHMENT | <!--v:attachment_refs-->37,377<!--/v--> |
-| Item | <!--v:nodes.items-->515,834<!--/v--> | | AMENDS | <!--v:amends-->117<!--/v--> |
-| 附則 article / paragraph | <!--v:nodes.suppl_articles-->240,053<!--/v--> / <!--v:nodes.suppl_paragraphs-->326,379<!--/v--> | | | |
-| Attachment (別表・様式…) | <!--v:nodes.attachments-->21,550<!--/v--> | | | |
+| Law | <!--v:nodes.laws-->8,981<!--/v--> | | CONTAINS (tree) | <!--v:contains-->1,881,131<!--/v--> |
+| Hierarchy (編章節款目) | <!--v:nodes.hierarchy-->26,685<!--/v--> | | CITES | <!--v:cites-->1,422,820<!--/v--> |
+| Article | <!--v:nodes.articles-->243,501<!--/v--> | | DELEGATES_TO (政令で定める → law) | <!--v:delegates-->67,763<!--/v--> |
+| Paragraph | <!--v:nodes.paragraphs-->504,821<!--/v--> | | REFERS_TO_ATTACHMENT | <!--v:attachment_refs-->37,506<!--/v--> |
+| Item | <!--v:nodes.items-->516,595<!--/v--> | | AMENDS | <!--v:amends-->118<!--/v--> |
+| 附則 article / paragraph | <!--v:nodes.suppl_articles-->240,682<!--/v--> / <!--v:nodes.suppl_paragraphs-->327,257<!--/v--> | | | |
+| Attachment (別表・様式…) | <!--v:nodes.attachments-->21,590<!--/v--> | | | |
 
 Node ids are stable and readable: `129AC0000000089_a709` (民法第七百九条), `…_a10-2_p3_i12-2`
 (第十条の二第三項第十二号の二), `…_asup-sp1-2` (附則第二条), `…_at-style-1` (様式第一).
@@ -35,11 +35,11 @@ Article-less provisions sit under a synthetic article `0`.
 ## Released files (`/data`)
 | File | Rows | Notes |
 |---|---:|---|
-| `laws.csv` | <!--v:laws-->8,998<!--/v--> | v1 columns + `enforcement_date`, `next_enforcement_date`, `pending_versions` |
-| `cites_edges.jsonl.gz` | <!--v:ext_edges-->622,586<!--/v--> | citations of a named law (<!--v:ext_cross-->527,879<!--/v--> to another law, <!--v:ext_self-->94,707<!--/v--> to the law's own amended version such as 新法), article-level, v1 fields + node ids |
-| `cites_law_to_law.csv` | <!--v:pairs-->70,600<!--/v--> | distinct src_law → tgt_law pairs with counts |
-| `cites_all_edges.jsonl.gz` | <!--v:all_edges-->1,523,383<!--/v--> | every CITES / DELEGATES_TO / REFERS_TO_ATTACHMENT / AMENDS edge |
-| `pending_versions.csv` | <!--v:pending-->1,649<!--/v--> | upcoming amendments (<!--v:pending_laws-->841<!--/v--> laws) |
+| `laws.csv` | <!--v:laws-->8,981<!--/v--> | v1 columns + `enforcement_date`, `next_enforcement_date`, `pending_versions` |
+| `cites_edges.jsonl.gz` | <!--v:ext_edges-->625,399<!--/v--> | citations of a named law (<!--v:ext_cross-->530,444<!--/v--> to another law, <!--v:ext_self-->94,955<!--/v--> to the law's own amended version such as 新法), article-level, v1 fields + node ids |
+| `cites_law_to_law.csv` | <!--v:pairs-->70,774<!--/v--> | distinct src_law → tgt_law pairs with counts |
+| `cites_all_edges.jsonl.gz` | <!--v:all_edges-->1,528,207<!--/v--> | every CITES / DELEGATES_TO / REFERS_TO_ATTACHMENT / AMENDS edge |
+| `pending_versions.csv` | <!--v:pending-->1,486<!--/v--> | upcoming amendments (<!--v:pending_laws-->808<!--/v--> laws) |
 
 Counting: one edge per (source node, target node). v1 counted mentions (see CHANGELOG).
 
@@ -56,7 +56,7 @@ Counting: one edge per (source node, target node). v1 counted mentions (see CHAN
 | `INTERNAL_PAT/amend_suppl` | `第N条` inside an amending law's 附則 (**low confidence 0.4**) |
 
 Edges whose citation names the pre-amendment text (「旧○○法第N条」, 「改正前の○○法」) carry
-`version: "pre_amendment"` and confidence ≤ 0.7: the law is right, but only its current text is in the graph (<!--v:pre_amendment_edges-->13,034<!--/v--> edges).
+`version: "pre_amendment"` and confidence ≤ 0.7: the law is right, but only its current text is in the graph (<!--v:pre_amendment_edges-->13,056<!--/v--> edges).
 
 ## Quality
 - **Integrity:** 11 validation checks pass: id format, CONTAINS is a tree, no dangling edges,
@@ -65,9 +65,9 @@ Edges whose citation names the pre-amendment text (「旧○○法第N条」, �
 
   | | resolved / extracted | rate |
   |---|---:|---:|
-  | same-law citations | <!--v:res.internal.k-->301,863<!--/v--> / <!--v:res.internal.n-->324,412<!--/v--> | <!--v:res.internal-->93.0%<!--/v--> |
-  | cross-law citations | <!--v:res.external.k-->670,243<!--/v--> / <!--v:res.external.n-->815,281<!--/v--> | <!--v:res.external-->82.2%<!--/v--> |
-  | relative references | <!--v:res.referential.k-->486,940<!--/v--> / <!--v:res.referential.n-->527,858<!--/v--> | <!--v:res.referential-->92.2%<!--/v--> |
+  | same-law citations | <!--v:res.internal.k-->302,257<!--/v--> / <!--v:res.internal.n-->324,813<!--/v--> | <!--v:res.internal-->93.1%<!--/v--> |
+  | cross-law citations | <!--v:res.external.k-->673,188<!--/v--> / <!--v:res.external.n-->818,710<!--/v--> | <!--v:res.external-->82.2%<!--/v--> |
+  | relative references | <!--v:res.referential.k-->488,210<!--/v--> / <!--v:res.referential.n-->529,367<!--/v--> | <!--v:res.referential-->92.2%<!--/v--> |
 
 - **Precision (preliminary):** see [docs/METHODOLOGY.md](docs/METHODOLOGY.md). About 98% across the
   rules that carry 86% of the edges, from small hand-checked samples that were not blind.

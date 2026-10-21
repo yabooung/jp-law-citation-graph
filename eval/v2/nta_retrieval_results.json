@@ -10,21 +10,21 @@
       "queries": 1186,
       "recall@1": 0.1037,
       "recall@5": 0.2336,
-      "recall@10": 0.3052,
+      "recall@10": 0.3044,
       "recall@20": 0.3879,
       "recall@50": 0.4975,
-      "mrr@50": 0.1708,
-      "sec_per_query": 0.108
+      "mrr@50": 0.1706,
+      "sec_per_query": 0.146
     },
     "bm25+graph": {
       "queries": 1186,
-      "recall@1": 0.2892,
-      "recall@5": 0.4418,
-      "recall@10": 0.5059,
+      "recall@1": 0.2926,
+      "recall@5": 0.4427,
+      "recall@10": 0.5067,
       "recall@20": 0.5506,
-      "recall@50": 0.6012,
-      "mrr@50": 0.3593,
-      "sec_per_query": 0.108
+      "recall@50": 0.6003,
+      "mrr@50": 0.3607,
+      "sec_per_query": 0.154
     }
   }
 }

@@ -13,7 +13,7 @@ commercially, provided you give **appropriate credit**.
 
 ## Attribution
 > Derived from **e-Gov 法令検索** (https://laws.e-gov.go.jp/), Japanese Government
-> open law data (snapshot <!--v:snapshot-->2026-09-27<!--/v-->), via **JLaw-CiteGraph**
+> open law data (snapshot <!--v:snapshot-->2026-10-20<!--/v-->), via **JLaw-CiteGraph**
 > (https://github.com/yabooung/jp-law-citation-graph).
 
 Japanese statutes themselves are not subject to copyright; e-Gov 法令データ is provided
